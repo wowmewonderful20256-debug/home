@@ -1,254 +1,184 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TimeSphere — Login</title>
-
-  <!-- Google fonts & Material icons -->
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Material+Icons" rel="stylesheet">
-
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <style>
-    /* --- Base / reset --- */
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Roboto', sans-serif; }
-    html,body { height: 100%; }
     body {
-      min-height: 100%;
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #2e1f98, #00c4ff);
+      color: #fff;
+      overflow: hidden;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 24px;
-      background: linear-gradient(135deg,#6a11cb,#2575fc);
-      background-size: 200% 200%;
-      animation: bgAnim 18s infinite alternate ease-in-out;
-      color: #fff;
-    }
-    @keyframes bgAnim {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
+      height: 100vh;
     }
 
-    /* --- Card --- */
-    .card {
-      width: 100%;
-      max-width: 920px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
-      border-radius: 18px;
-      padding: 28px;
-      box-shadow: 0 8px 40px rgba(0,0,0,0.35);
-      display: grid;
-      grid-template-columns: 1fr 420px;
-      gap: 24px;
-      align-items: center;
-      overflow: hidden;
-      position: relative;
-    }
-
-    /* Decorative blob */
-    .blob {
+    header {
       position: absolute;
-      right: -120px;
-      top: -80px;
-      width: 420px;
-      height: 420px;
-      background: radial-gradient(circle at 30% 30%, rgba(255,138,0,0.18), transparent 20%),
-                  radial-gradient(circle at 70% 70%, rgba(229,46,113,0.12), transparent 25%);
-      filter: blur(40px);
-      transform: rotate(12deg);
-      pointer-events: none;
-    }
-
-    /* Left panel — branding + info */
-    .left {
-      padding: 6px 10px;
-    }
-    .brand {
+      top: 10px;
+      right: 20px;
       display: flex;
       align-items: center;
-      gap: 14px;
-      margin-bottom: 16px;
-    }
-    .logo {
-      width: 64px;
-      height: 64px;
-      border-radius: 14px;
-      display: grid;
-      place-items: center;
-      font-weight: 700;
-      font-size: 20px;
-      letter-spacing: 0.6px;
-      background: linear-gradient(135deg,#ff8a00,#e52e71);
-      box-shadow: 0 8px 30px rgba(229,46,113,0.18);
-    }
-    .title {
-      font-size: 1.6rem;
-      text-shadow: 1px 1px 8px rgba(0,0,0,0.25);
-    }
-    .subtitle {
-      margin-top: 6px;
-      font-size: 0.95rem;
-      opacity: 0.92;
-      color: rgba(255,255,255,0.95);
+      gap: 15px;
     }
 
-    /* Right panel — form */
-    .form-wrap {
-      background: rgba(255,255,255,0.03);
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
-      backdrop-filter: blur(6px);
+    .clock {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 18px;
     }
 
-    .form-head {
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:8px;
-      margin-bottom: 12px;
-    }
-    .form-head h3 { font-size: 1.15rem; }
-    .clock-mini {
-      font-size: 0.95rem;
-      background: rgba(255,255,255,0.06);
-      padding: 6px 10px;
-      border-radius: 10px;
-      animation: pulse 2.5s infinite;
-    }
-    @keyframes pulse { 0%,100%{transform:scale(1);}50%{transform:scale(1.03);} }
-
-    /* inputs */
-    .inputs { display: grid; gap: 10px; margin-top: 6px; }
-    label { font-size: 0.85rem; opacity: 0.95; margin-bottom: 6px; display:block; }
-    input[type="email"], input[type="password"] {
-      width: 100%;
-      padding: 12px 14px;
-      border-radius: 10px;
+    .login-btn {
+      background: rgba(255, 255, 255, 0.15);
       border: none;
-      outline: none;
-      font-size: 1rem;
-      background: rgba(255,255,255,0.03);
       color: #fff;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.25);
-    }
-    .actions { display:flex; gap:10px; margin-top: 12px; }
-
-    .btn {
+      padding: 10px 18px;
+      border-radius: 30px;
       cursor: pointer;
-      padding: 10px 14px;
-      font-weight: 700;
-      border-radius: 10px;
+      font-weight: 600;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.3); }
+      50% { box-shadow: 0 0 10px 4px rgba(255,255,255,0.4); }
+    }
+
+    .container {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 15px;
+      padding: 40px;
+      box-shadow: 0 0 15px rgba(255,255,255,0.3);
+      width: 300px;
+      text-align: center;
+      backdrop-filter: blur(8px);
+    }
+
+    h1 {
+      font-family: 'Orbitron', sans-serif;
+      margin-bottom: 20px;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
       border: none;
-      min-width: 110px;
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      gap:8px;
-      transition: transform .15s ease, box-shadow .15s ease;
-    }
-    .btn:active { transform: translateY(1px); }
-
-    .btn-primary {
-      background: linear-gradient(90deg,#ff8a00,#e52e71);
-      color: white;
-      box-shadow: 0 8px 24px rgba(229,46,113,0.18);
-      animation: glow 3s infinite alternate;
-    }
-    @keyframes glow { from { box-shadow: 0 8px 18px rgba(229,46,113,0.12);} to { box-shadow: 0 12px 36px rgba(229,46,113,0.24);} }
-
-    .btn-ghost {
-      background: transparent;
-      border: 1px solid rgba(255,255,255,0.12);
-      color: #fff;
+      border-radius: 5px;
+      font-size: 14px;
     }
 
-    .small { font-size: 0.88rem; opacity: 0.95; }
-
-    .msg {
-      margin-top: 12px;
-      font-size: 0.95rem;
-      min-height: 22px;
-    }
-
-    .hint {
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #00e1ff;
+      border: none;
+      border-radius: 5px;
+      color: #000;
+      font-weight: 600;
+      cursor: pointer;
       margin-top: 10px;
-      font-size: 0.85rem;
-      color: rgba(255,255,255,0.8);
-      display:flex; align-items:center; gap:8px;
+      transition: 0.3s;
     }
 
-    /* responsive */
-    @media (max-width: 880px) {
-      .card { grid-template-columns: 1fr; padding: 18px; }
-      .blob { display: none; }
+    button:hover {
+      background: #fff;
+    }
+
+    .toggle {
+      margin-top: 10px;
+      color: #fff;
+      cursor: pointer;
+      font-size: 14px;
+      opacity: 0.8;
     }
   </style>
 </head>
 <body>
+  <header>
+    <div class="clock" id="clock"></div>
+    <button class="login-btn" onclick="window.location.href='/login/index.html'">
+      <span class="material-icons">login</span> Login
+    </button>
+  </header>
 
-  <div class="card" role="main" aria-labelledby="loginTitle">
-    <div class="blob" aria-hidden="true"></div>
+  <div class="container">
+    <h1>Welcome to TimeSphere</h1>
+    <input type="email" id="email" placeholder="Email">
+    <input type="password" id="password" placeholder="Password">
+    <button id="loginBtn">Login</button>
+    <div class="toggle" id="toggleMode">Don't have an account? Register</div>
+  </div>
 
-    <!-- LEFT: Branding + short description -->
-    <div class="left" aria-hidden="false">
-      <div class="brand">
-        <div class="logo">TS</div>
-        <div>
-          <div class="title">TimeSphere</div>
-          <div class="subtitle">Manage countdowns, clocks and your local data — secure login with Firebase.</div>
-        </div>
-      </div>
+  <!-- Firebase -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
 
-      <div style="margin-top:18px; line-height:1.5; color: rgba(255,255,255,0.95);">
-        <p><strong>Nice animations</strong>, responsive layout and the same visual feel as your homepage.</p>
-        <p style="margin-top:8px;">Use an email + password to sign in or create an account. After sign-in you'll be redirected back to the main page.</p>
-      </div>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBiGzil9wA3CXZWxWjHsn7iKPkiYQozQW8",
+      authDomain: "timesphere-9f7e0.firebaseapp.com",
+      projectId: "timesphere-9f7e0",
+      storageBucket: "timesphere-9f7e0.firebasestorage.app",
+      messagingSenderId: "94629610195",
+      appId: "1:94629610195:web:a037e5c5aa0c5ba7e50a26"
+    };
 
-      <div style="margin-top:18px;">
-        <div class="hint">
-          <span class="material-icons" aria-hidden="true">security</span>
-          Your credentials are sent directly to Firebase Auth (no server required).
-        </div>
-      </div>
-    </div>
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
 
-    <!-- RIGHT: Form -->
-    <div class="form-wrap" aria-hidden="false">
-      <div class="form-head">
-        <h3 id="loginTitle">Sign in / Register</h3>
-        <div class="clock-mini" id="miniClock">--:--:--</div>
-      </div>
+    const emailInput = document.getElementById("email");
+    const passwordInput = document.getElementById("password");
+    const loginBtn = document.getElementById("loginBtn");
+    const toggleMode = document.getElementById("toggleMode");
 
-      <form id="authForm" autocomplete="on" onsubmit="return false;">
-        <div class="inputs">
-          <div>
-            <label for="email">Email</label>
-            <input id="email" type="email" placeholder="you@example.com" required />
-          </div>
+    let registerMode = false;
 
-          <div>
-            <label for="password">Password</label>
-            <input id="password" type="password" placeholder="At least 6 characters" minlength="6" required />
-          </div>
+    toggleMode.addEventListener("click", () => {
+      registerMode = !registerMode;
+      loginBtn.textContent = registerMode ? "Register" : "Login";
+      toggleMode.textContent = registerMode
+        ? "Already have an account? Login"
+        : "Don't have an account? Register";
+    });
 
-          <div style="display:flex; gap:8px; align-items:center;">
-            <button id="signInBtn" class="btn btn-primary" type="button">
-              <span class="material-icons">login</span>
-              Sign in
-            </button>
+    loginBtn.addEventListener("click", async () => {
+      const email = emailInput.value;
+      const password = passwordInput.value;
+      try {
+        if (registerMode) {
+          await createUserWithEmailAndPassword(auth, email, password);
+        } else {
+          await signInWithEmailAndPassword(auth, email, password);
+        }
+        window.location.href = "/home/dashboard/";
+      } catch (error) {
+        alert("Error: " + error.message);
+      }
+    });
 
-            <button id="registerBtn" class="btn btn-ghost" type="button">
-              <span class="material-icons">person_add</span>
-              Create account
-            </button>
-
-            <button id="signOutBtn" class="btn btn-ghost" style="margin-left:auto; display:none;" type="button">
-              <span class="material-icons">logout</span>
-              Sign out
-            </button>
-          </div>
-
-          <div class="msg small" id="message" aria-live="polite"></div>
-        </div>
-  </form>
+    // Clock
+    function updateClock() {
+      const now = new Date();
+      const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+      const london = new Date(utc + 3600000); // GMT+1 (BST)
+      const isBST = (now.getMonth() >= 2 && now.getMonth() < 9);
+      const currentTime = isBST ? london : new Date(utc);
+      const timeString = currentTime.toLocaleTimeString("en-GB", { hour12: false });
+      document.getElementById("clock").textContent = `Current Time: ${timeString} ${isBST ? "BST" : "GMT"}`;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+  </script>
+</body>
+</html>
