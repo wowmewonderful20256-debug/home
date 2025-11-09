@@ -7,7 +7,6 @@
     <!-- Google Fonts for icons and text -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Material+Icons" rel="stylesheet">
     <style>
-        /* Basic Reset */
         * {
             margin: 0;
             padding: 0;
@@ -25,7 +24,8 @@
             min-height: 100vh;
             overflow-x: hidden;
             padding: 20px;
-            animation: bgAnimation 20s infinite alternate;
+            background-size: 200% 200%;
+            animation: bgAnimation 20s infinite alternate ease-in-out;
         }
 
         @keyframes bgAnimation {
@@ -45,6 +45,13 @@
         header h1 {
             font-size: 2rem;
             text-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+            letter-spacing: 1px;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
         }
 
         .time-display {
@@ -58,6 +65,33 @@
         @keyframes pulse {
             0%, 100% {transform: scale(1);}
             50% {transform: scale(1.05);}
+        }
+
+        .login-btn {
+            background: linear-gradient(90deg, #ff8a00, #e52e71);
+            color: white;
+            font-weight: bold;
+            border: none;
+            border-radius: 25px;
+            padding: 8px 18px;
+            font-size: 1rem;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(255,255,255,0.3);
+            transition: all 0.3s ease;
+            animation: glow 3s infinite alternate;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .login-btn:hover {
+            transform: scale(1.07);
+            box-shadow: 0 0 20px rgba(255,255,255,0.6);
+        }
+
+        @keyframes glow {
+            from { box-shadow: 0 0 10px rgba(255,255,255,0.3); }
+            to { box-shadow: 0 0 25px rgba(255,255,255,0.7); }
         }
 
         .section {
@@ -111,7 +145,7 @@
             margin-top: 10px;
         }
 
-        input[type="text"] {
+        input[type="text"], input[type="number"] {
             padding: 8px;
             border-radius: 8px;
             border: none;
@@ -123,7 +157,12 @@
 
     <header>
         <h1>TimeSphere</h1>
-        <div class="time-display" id="currentTime">Current Time: --:--:--</div>
+        <div class="header-right">
+            <div class="time-display" id="currentTime">Current Time: --:--:--</div>
+            <button class="login-btn" onclick="window.location.href='/login/index.html'">
+                <span class="material-icons">login</span> Login
+            </button>
+        </div>
     </header>
 
     <div class="section">
