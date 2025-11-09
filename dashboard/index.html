@@ -20,6 +20,8 @@
       padding: 1rem 2rem;
       background: rgba(255,255,255,0.1);
       backdrop-filter: blur(8px);
+      position: relative;
+      z-index: 10;
     }
     .menu-btn {
       font-size: 2rem;
@@ -36,6 +38,7 @@
       backdrop-filter: blur(8px);
       padding-top: 4rem;
       transition: left 0.4s;
+      z-index: 20;
     }
     .menu.open { left: 0; }
     .menu a {
@@ -48,6 +51,15 @@
       transition: background 0.3s;
     }
     .menu a:hover { background: rgba(255,255,255,0.1); }
+    .menu-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.3);
+      z-index: 15;
+    }
+    .menu-overlay.show { display: block; }
     .right {
       display: flex;
       align-items: center;
@@ -67,15 +79,23 @@
     main {
       padding: 2rem;
       text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      align-items: center;
     }
-    .user-info {
-      margin-bottom: 2rem;
-      font-size: 1.1rem;
+    .section {
+      width: 90%;
+      max-width: 700px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 20px;
+      padding: 2rem;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
     }
-    .creations {
-      margin-top: 2rem;
+    .section:nth-child(2) {
+      background: rgba(255,255,255,0.15);
     }
-    .creations h2 {
+    .section h2 {
       font-size: 1.4rem;
       margin-bottom: 1rem;
     }
@@ -121,9 +141,12 @@
     <a href="/home/dashboard/coins/"><span class="material-icons">paid</span>Coins</a>
     <a href="/home/dashboard/quests-and-rewards/"><span class="material-icons">military_tech</span>Quests</a>
     <a href="/home/dashboard/settings/"><span class="material-icons">settings</span>Settings</a>
-  </nav>  <main>
-    <div class="user-info" id="userInfo">Loading user...</div>
-    <div class="creations">
+  </nav>
+  <div class="menu-overlay" id="menuOverlay"></div>  <main>
+    <div class="section" id="userSection">
+      <div class="user-info" id="userInfo">Loading user...</div>
+    </div>
+    <div class="section" id="creationsSection">
       <h2>Your Creations</h2>
       <div id="creationsList">Loading...</div>
     </div>
@@ -146,8 +169,16 @@
     const db = getFirestore(app);
 
     const sideMenu = document.getElementById('sideMenu');
+    const overlay = document.getElementById('menuOverlay');
+
     document.querySelector('.menu-btn').addEventListener('click', () => {
-      sideMenu.classList.toggle('open');
+      sideMenu.classList.add('open');
+      overlay.classList.add('show');
+    });
+
+    overlay.addEventListener('click', () => {
+      sideMenu.classList.remove('open');
+      overlay.classList.remove('show');
     });
 
     document.getElementById('logoutBtn').addEventListener('click', async () => {
@@ -167,7 +198,7 @@
       if (!user) {
         window.location.href = '/login/index.html';
       } else {
-        document.getElementById('userInfo').innerHTML = `Welcome, ${user.email} <br>UID: ${user.uid}`;
+        document.getElementById('userInfo').innerHTML = `Welcome, <b>${user.email}</b><br>UID: ${user.uid}`;
 
         const creationsRef = collection(db, 'creations');
         const q = query(creationsRef, where('uid', '==', user.uid));
@@ -204,4 +235,4 @@
       }
     });
   </script></body>
-</html>
+  </html>
