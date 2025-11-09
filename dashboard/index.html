@@ -1,0 +1,260 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>TimeSphere — Dashboard</title>
+  <!-- Google fonts & icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <style>
+    :root{
+      --bg1:#6a11cb;
+      --bg2:#2575fc;
+      --accent1:#ff8a00;
+      --accent2:#e52e71;
+      --glass: rgba(255,255,255,0.06);
+      --glass-strong: rgba(255,255,255,0.12);
+      --card-radius:14px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:Roboto,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial}
+    body{
+      background: linear-gradient(135deg,var(--bg1),var(--bg2));
+      background-size:200% 200%;
+      animation:bgMove 18s infinite alternate ease-in-out;
+      color:#fff;
+      -webkit-font-smoothing:antialiased;
+      display:flex;flex-direction:column;min-height:100vh;overflow:hidden
+    }
+    @keyframes bgMove{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}/* Header */
+header.app-header{
+  display:flex;justify-content:space-between;align-items:center;padding:18px 24px;
+  backdrop-filter:blur(6px);
+}
+.left-header{display:flex;align-items:center;gap:12px}
+
+/* hamburger */
+.hamburger{width:44px;height:44px;border-radius:10px;display:grid;place-items:center;background:var(--glass);cursor:pointer;transition:transform .18s;box-shadow:0 6px 20px rgba(0,0,0,0.28)}
+.hamburger:active{transform:scale(.98)}
+.hamburger .material-icons{font-size:22px;color:white;transform-origin:center}
+
+.site-title{font-weight:700;font-size:20px;letter-spacing:0.6px}
+
+/* header right */
+.header-right{display:flex;align-items:center;gap:14px}
+.time-box{padding:8px 12px;border-radius:12px;background:var(--glass);font-weight:600}
+.logout-btn{padding:8px 14px;border-radius:14px;border:none;background:linear-gradient(90deg,var(--accent1),var(--accent2));color:#000;font-weight:700;cursor:pointer}
+.logout-btn:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(229,46,113,0.18)}
+
+/* Sidebar */
+.sidebar{
+  position:fixed;left:0;top:0;bottom:0;width:300px;padding:24px;transform:translateX(-110%);
+  background:linear-gradient(180deg, rgba(0,0,0,0.18), rgba(255,255,255,0.02));backdrop-filter:blur(8px);
+  box-shadow: 8px 0 30px rgba(0,0,0,0.45);z-index:60;transition:transform .35s cubic-bezier(.2,.9,.2,1);
+  display:flex;flex-direction:column;gap:18px
+}
+.sidebar.open{transform:translateX(0)}
+.sidebar .logo-row{display:flex;align-items:center;gap:12px}
+.logo-pill{width:56px;height:56px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(135deg,var(--accent1),var(--accent2));font-weight:800}
+.nav{margin-top:8px;display:flex;flex-direction:column;gap:8px}
+.nav a{display:flex;align-items:center;gap:12px;padding:10px;border-radius:10px;color:#fff;text-decoration:none;font-weight:600;background:transparent;transition:background .18s,transform .12s}
+.nav a:hover{background:var(--glass-strong);transform:translateX(6px)}
+.nav a .material-icons{font-size:20px;color:rgba(255,255,255,0.95)}
+
+/* Content area */
+main.content{flex:1;padding:22px 28px;overflow:auto}
+.card{background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));border-radius:var(--card-radius);padding:18px;box-shadow:0 8px 30px rgba(0,0,0,0.25);max-width:1100px}
+
+.user-info{display:flex;align-items:center;gap:12px}
+.avatar{width:64px;height:64px;border-radius:12px;background:linear-gradient(135deg,var(--accent2),var(--accent1));display:grid;place-items:center;font-weight:700}
+.u-meta{display:flex;flex-direction:column}
+.u-meta .email{font-weight:700}
+.u-meta .uid{font-size:13px;opacity:0.85}
+
+/* small quick links grid */
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-top:16px}
+.card-tile{background:rgba(255,255,255,0.02);padding:14px;border-radius:12px;display:flex;align-items:center;gap:12px}
+.tile .material-icons{font-size:26px}
+
+footer{padding:18px 28px;color:rgba(255,255,255,0.8);font-size:13px}
+
+/* responsive */
+@media (max-width:800px){
+  .sidebar{width:78%;}
+  header.app-header{padding:12px}
+  .site-title{font-size:18px}
+}
+
+  </style>
+</head>
+<body>
+  <!-- Sidebar (hidden by default) -->
+  <nav id="sidebar" class="sidebar" aria-hidden="true">
+    <div class="logo-row">
+      <div class="logo-pill" onclick="goHome()" style="cursor:pointer">TS</div>
+      <div>
+        <div style="font-weight:800">TimeSphere</div>
+        <div style="font-size:13px;opacity:0.9">Your control centre</div>
+      </div>
+    </div><div class="nav" role="menu" aria-label="Dashboard navigation">
+  <a href="/home/dashboard/" role="menuitem"><span class="material-icons">home</span> Dashboard</a>
+  <a href="/home/dashboard/users/" role="menuitem"><span class="material-icons">people</span> Users</a>
+  <a href="/home/dashboard/grupa/" role="menuitem"><span class="material-icons">groups</span> Group</a>
+  <a href="/home/dashboard/create-new-item/" role="menuitem"><span class="material-icons">add_circle</span> Create</a>
+  <a href="/home/dashboard/user-storage/" role="menuitem"><span class="material-icons">storage</span> Storage</a>
+  <a href="/home/dashboard/coins/" role="menuitem"><span class="material-icons">paid</span> Coins</a>
+  <a href="/home/dashboard/quests-and-rewards/" role="menuitem"><span class="material-icons">military_tech</span> Quests</a>
+  <a href="/home/dashboard/settings/" role="menuitem"><span class="material-icons">settings</span> Settings</a>
+</div>
+
+<div style="margin-top:auto;font-size:13px;opacity:0.9">v1.0 • TimeSphere</div>
+
+  </nav>  <!-- Header -->  <header class="app-header">
+    <div class="left-header">
+      <div class="hamburger" id="hambBtn" aria-label="Open menu" role="button" tabindex="0">
+        <span class="material-icons">menu</span>
+      </div>
+      <div class="site-title">TimeSphere</div>
+    </div><div class="header-right">
+  <div class="time-box" id="currentTime">Current Time: --:--:-- GMT</div>
+  <button class="logout-btn" id="logoutBtn">Log Lut</button>
+</div>
+
+  </header>  <!-- Main content -->  <main class="content">
+    <div class="card">
+      <div class="user-info">
+        <div class="avatar" id="avatar">U</div>
+        <div class="u-meta">
+          <div class="email" id="userEmail">Not signed in</div>
+          <div class="uid" id="userUid">UID: -</div>
+        </div>
+      </div><div class="grid" style="margin-top:18px">
+    <a class="card-tile" href="/home/dashboard/">
+      <span class="material-icons">home</span>
+      <div>
+        <div style="font-weight:700">Dashboard</div>
+        <div style="font-size:13px;opacity:0.85">Overview & quick stats</div>
+      </div>
+    </a>
+
+    <a class="card-tile" href="/home/dashboard/user-storage/">
+      <span class="material-icons">storage</span>
+      <div>
+        <div style="font-weight:700">Storage</div>
+        <div style="font-size:13px;opacity:0.85">Manage user data</div>
+      </div>
+    </a>
+
+    <a class="card-tile" href="/home/dashboard/create-new-item/">
+      <span class="material-icons">add_circle</span>
+      <div>
+        <div style="font-weight:700">Create</div>
+        <div style="font-size:13px;opacity:0.85">Add new items</div>
+      </div>
+    </a>
+
+    <a class="card-tile" href="/home/dashboard/quests-and-rewards/">
+      <span class="material-icons">military_tech</span>
+      <div>
+        <div style="font-weight:700">Quests</div>
+        <div style="font-size:13px;opacity:0.85">Rewards & achievements</div>
+      </div>
+    </a>
+  </div>
+</div>
+
+  </main>  <footer>© TimeSphere</footer>  <!-- Firebase and interactivity -->  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
+
+    // use the same firebase config you already have
+    const firebaseConfig = {
+      apiKey: "AIzaSyBiGzil9wA3CXZWxWjHsn7iKPkiYQozQW8",
+      authDomain: "timesphere-9f7e0.firebaseapp.com",
+      projectId: "timesphere-9f7e0",
+      storageBucket: "timesphere-9f7e0.firebasestorage.app",
+      messagingSenderId: "94629610195",
+      appId: "1:94629610195:web:a037e5c5aa0c5ba7e50a26"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    const sidebar = document.getElementById('sidebar');
+    const hambBtn = document.getElementById('hambBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    // toggle sidebar
+    function toggleSidebar(){
+      const open = sidebar.classList.toggle('open');
+      sidebar.setAttribute('aria-hidden', (!open).toString());
+      // animate hamburger icon -> change to close icon
+      const icon = hambBtn.querySelector('.material-icons');
+      icon.textContent = open ? 'close' : 'menu';
+    }
+
+    hambBtn.addEventListener('click', toggleSidebar);
+    hambBtn.addEventListener('keydown', (e)=>{ if(e.key === 'Enter' || e.key === ' ') toggleSidebar(); });
+
+    // helper go home
+    function goHome(){ window.location.href = '/home/dashboard/'; }
+    window.goHome = goHome;
+
+    // show London time (GMT/BST) — accurate using timezone option
+    function updateTime(){
+      const now = new Date();
+      const opts = { timeZone: 'Europe/London', hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit' };
+      const s = now.toLocaleTimeString('en-GB', opts);
+      // determine BST vs GMT by using London offset
+      const jan = new Date(now.getFullYear(),0,1);
+      const jul = new Date(now.getFullYear(),6,1);
+      const stdOffset = Math.max(jan.getTimezoneOffset(), jul.getTimezoneOffset());
+      // crude check for DST in Europe/London is handled by toLocale; we'll detect by string timezone name not available — fallback to month check
+      const month = now.getMonth();
+      const isBST = (month >= 2 && month <= 9); // Mar - Oct approx
+      document.getElementById('currentTime').textContent = `Current Time: ${s} ${isBST? 'BST':'GMT'}`;
+    }
+    setInterval(updateTime,1000); updateTime();
+
+    // Auth handling — show user email + uid; if not signed in, redirect to login
+    const userEmailEl = document.getElementById('userEmail');
+    const userUidEl = document.getElementById('userUid');
+    const avatarEl = document.getElementById('avatar');
+
+    onAuthStateChanged(auth, (user) => {
+      if(user){
+        // display user info
+        userEmailEl.textContent = user.email || 'No email';
+        userUidEl.textContent = 'UID: ' + (user.uid || '-');
+        avatarEl.textContent = (user.displayName && user.displayName[0]) || (user.email && user.email[0].toUpperCase()) || 'U';
+      } else {
+        // not logged in -> redirect to login page
+        window.location.href = '/login/index.html';
+      }
+    });
+
+    logoutBtn.addEventListener('click', async ()=>{
+      try{
+        await signOut(auth);
+        // after sign out go to login
+        window.location.href = '/login/index.html';
+      }catch(err){
+        console.error('Sign out failed', err);
+        alert('Sign out failed: ' + (err.message||err.code));
+      }
+    });
+
+    // close sidebar when clicking outside (mobile)
+    document.addEventListener('click', (e)=>{
+      if(!sidebar.classList.contains('open')) return;
+      const tgt = e.target;
+      if(!sidebar.contains(tgt) && !hambBtn.contains(tgt)){
+        sidebar.classList.remove('open');
+        sidebar.setAttribute('aria-hidden','true');
+        hambBtn.querySelector('.material-icons').textContent = 'menu';
+      }
+    });
+  </script></body>
+  </html>
