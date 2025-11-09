@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TimeSphere</title>
+    <!-- Google Fonts for icons and text -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Material+Icons" rel="stylesheet">
+    <style>
+        /* Basic Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Roboto', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #6a11cb, #2575fc);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            overflow-x: hidden;
+            padding: 20px;
+            animation: bgAnimation 20s infinite alternate;
+        }
+
+        @keyframes bgAnimation {
+            0% {background-position: 0% 50%;}
+            50% {background-position: 100% 50%;}
+            100% {background-position: 0% 50%;}
+        }
+
+        header {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+        }
+
+        header h1 {
+            font-size: 2rem;
+            text-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+        }
+
+        .time-display {
+            font-size: 1.2rem;
+            padding: 8px 12px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 12px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {transform: scale(1);}
+            50% {transform: scale(1.05);}
+        }
+
+        .section {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 15px;
+            width: 100%;
+            max-width: 600px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            animation: fadeIn 2s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            from {opacity: 0; transform: translateY(20px);}
+            to {opacity: 1; transform: translateY(0);}
+        }
+
+        h2 {
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+        }
+
+        h2 .material-icons {
+            margin-right: 10px;
+            color: #ffeb3b;
+        }
+
+        button {
+            margin-top: 10px;
+            padding: 10px 20px;
+            font-size: 1rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            background: #ffeb3b;
+            color: #000;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .countdown-display, .clock-display, .storage-display {
+            font-size: 1.2rem;
+            margin-top: 10px;
+        }
+
+        input[type="text"] {
+            padding: 8px;
+            border-radius: 8px;
+            border: none;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>TimeSphere</h1>
+        <div class="time-display" id="currentTime">Current Time: --:--:--</div>
+    </header>
+
+    <div class="section">
+        <h2><span class="material-icons">timer</span>Countdown Timer</h2>
+        <p>Start a countdown from a number of seconds:</p>
+        <input type="number" id="countdownInput" placeholder="Seconds" min="1">
+        <button id="startCountdown">Start</button>
+        <div class="countdown-display" id="countdownDisplay">--:--:--</div>
+    </div>
+
+    <div class="section">
+        <h2><span class="material-icons">schedule</span>Clock</h2>
+        <p>This shows London time (GMT/BST depending on season):</p>
+        <div class="clock-display" id="clockDisplay">--:--:--</div>
+    </div>
+
+    <div class="section">
+        <h2><span class="material-icons">storage</span>Manage Storage</h2>
+        <p>Save a note in your browser storage:</p>
+        <input type="text" id="storageInput" placeholder="Enter text...">
+        <button id="saveStorage">Save</button>
+        <button id="loadStorage">Load</button>
+        <div class="storage-display" id="storageDisplay">Nothing saved yet</div>
+    </div>
+
+    <script>
+        // Current Time Display (London GMT/BST)
+        function updateCurrentTime() {
+            const now = new Date();
+            let options = {timeZone: 'Europe/London', hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit'};
+            document.getElementById('currentTime').textContent = "Current Time: " + now.toLocaleTimeString('en-GB', options);
+        }
+        setInterval(updateCurrentTime, 1000);
+        updateCurrentTime();
+
+        // Countdown Timer
+        let countdownInterval;
+        document.getElementById('startCountdown').addEventListener('click', () => {
+            clearInterval(countdownInterval);
+            let seconds = parseInt(document.getElementById('countdownInput').value);
+            if (isNaN(seconds) || seconds <= 0) return;
+            function updateCountdown() {
+                let h = Math.floor(seconds / 3600);
+                let m = Math.floor((seconds % 3600) / 60);
+                let s = seconds % 60;
+                document.getElementById('countdownDisplay').textContent =
+                    `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+                if (seconds <= 0) clearInterval(countdownInterval);
+                seconds--;
+            }
+            updateCountdown();
+            countdownInterval = setInterval(updateCountdown, 1000);
+        });
+
+        // Clock Display (London Time)
+        function updateClock() {
+            const now = new Date();
+            let options = {timeZone: 'Europe/London', hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit'};
+            document.getElementById('clockDisplay').textContent = now.toLocaleTimeString('en-GB', options);
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // Manage Storage
+        document.getElementById('saveStorage').addEventListener('click', () => {
+            const value = document.getElementById('storageInput').value;
+            if(value) localStorage.setItem('timeSphereNote', value);
+            document.getElementById('storageDisplay').textContent = 'Saved!';
+        });
+
+        document.getElementById('loadStorage').addEventListener('click', () => {
+            const value = localStorage.getItem('timeSphereNote');
+            document.getElementById('storageDisplay').textContent = value ? value : 'Nothing saved yet';
+        });
+    </script>
+
+</body>
+</html>
