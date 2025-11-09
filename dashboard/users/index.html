@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TimeSphere | Users</title>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      margin: 0;
+      background: linear-gradient(135deg, #e0f7fa, #fce4ec);
+      color: #222;
+      overflow-x: hidden;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 25px;
+      background: #ffffffa8;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      position: fixed;
+      width: 100%;
+      top: 0;
+      z-index: 10;
+    }
+
+    .title {
+      font-weight: 600;
+      font-size: 1.4em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .hamburger {
+      cursor: pointer;
+      font-size: 28px;
+      transition: 0.3s;
+    }
+    .hamburger:hover {
+      transform: scale(1.1);
+    }
+
+    .right-header {
+      display: flex;
+      align-items: center;
+      gap: 25px;
+      font-size: 0.95em;
+    }
+
+    .login-btn {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 25px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .login-btn:hover {
+      background: #0056b3;
+    }
+
+    #menu {
+      position: fixed;
+      top: 0;
+      left: -250px;
+      width: 250px;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      box-shadow: 4px 0 10px rgba(0, 0, 0, 0.1);
+      transition: left 0.3s ease;
+      padding-top: 70px;
+      z-index: 20;
+    }
+
+    #menu.active {
+      left: 0;
+    }
+
+    #menu a {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 20px;
+      text-decoration: none;
+      color: #333;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+
+    #menu a:hover {
+      background: #e0f2f1;
+    }
+
+    main {
+      margin-top: 90px;
+      padding: 25px;
+    }
+
+    .section {
+      background: rgba(255,255,255,0.8);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+      margin-bottom: 20px;
+      backdrop-filter: blur(5px);
+    }
+
+    .section h2 {
+      margin-top: 0;
+      font-size: 1.3em;
+    }
+
+    .search-bar {
+      display: flex;
+      align-items: center;
+      background: #f3f3f3;
+      border-radius: 25px;
+      padding: 5px 12px;
+      margin-bottom: 15px;
+    }
+
+    .search-bar input {
+      border: none;
+      background: transparent;
+      outline: none;
+      flex: 1;
+      font-size: 1em;
+      padding: 6px;
+    }
+
+    .search-bar .material-icons {
+      cursor: pointer;
+    }
+
+    .user-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px;
+      border-bottom: 1px solid rgba(0,0,0,0.1);
+    }
+
+    .user-card .material-icons {
+      font-size: 32px;
+      color: #007bff;
+    }
+
+    .user-card span {
+      font-size: 0.9em;
+      color: #333;
+    }
+
+  </style>
+</head>
+<body>
+  <header>
+    <div class="title">
+      <span class="material-icons hamburger" id="menuToggle">menu</span>
+      TimeSphere
+    </div>
+    <div class="right-header">
+      <div id="currentTime">Loading...</div>
+      <button class="login-btn" id="logoutBtn">Logout</button>
+    </div>
+  </header>
+
+  <nav id="menu">
+    <a href="/home/dashboard/"><span class="material-icons">home</span> Dashboard</a>
+    <a href="/home/dashboard/users/"><span class="material-icons">group</span> Users</a>
+    <a href="/home/dashboard/group/"><span class="material-icons">groups</span> Group</a>
+    <a href="/home/dashboard/create-new-item/"><span class="material-icons">add_circle</span> Create</a>
+    <a href="/home/dashboard/user-storage/"><span class="material-icons">storage</span> Storage</a>
+    <a href="/home/dashboard/coins/"><span class="material-icons">paid</span> Coins</a>
+    <a href="/home/dashboard/quests-and-rewards/"><span class="material-icons">emoji_events</span> Quests</a>
+    <a href="/home/dashboard/settings/"><span class="material-icons">settings</span> Settings</a>
+  </nav>
+
+  <main>
+    <div class="section">
+      <h2>Search Users</h2>
+      <div class="search-bar">
+        <input type="text" id="searchInput" placeholder="Type to search users..." />
+        <span class="material-icons" id="searchBtn">search</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>All Users</h2>
+      <div id="usersList">Loading users...</div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBiGzil9wA3CXZWxWjHsn7iKPkiYQozQW8",
+      authDomain: "timesphere-9f7e0.firebaseapp.com",
+      projectId: "timesphere-9f7e0",
+      storageBucket: "timesphere-9f7e0.firebasestorage.app",
+      messagingSenderId: "94629610195",
+      appId: "1:94629610195:web:a037e5c5aa0c5ba7e50a26"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // Clock update
+    function updateTime() {
+      const now = new Date();
+      const isBST = now.getMonth() >= 2 && now.getMonth() <= 9;
+      const options = { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Europe/London' };
+      document.getElementById('currentTime').textContent =
+        (isBST ? "BST" : "GMT") + " " + new Intl.DateTimeFormat('en-GB', options).format(now);
+    }
+    setInterval(updateTime, 1000);
+    updateTime();
+
+    // Menu toggle
+    const menu = document.getElementById('menu');
+    document.getElementById('menuToggle').addEventListener('click', () => menu.classList.toggle('active'));
+    document.addEventListener('click', (e) => {
+      if (!menu.contains(e.target) && !e.target.closest('#menuToggle')) {
+        menu.classList.remove('active');
+      }
+    });
+
+    // Search
+    const searchBtn = document.getElementById('searchBtn');
+    const searchInput = document.getElementById('searchInput');
+    searchBtn.addEventListener('click', () => {
+      const query = searchInput.value.trim();
+      if (query) window.location.href = `/home/dashboard/users/search.html?query=${encodeURIComponent(query)}`;
+    });
+    searchInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') searchBtn.click();
+    });
+
+    // Load users
+    async function loadUsers() {
+      const usersDiv = document.getElementById('usersList');
+      usersDiv.innerHTML = "";
+      try {
+        const querySnapshot = await getDocs(collection(db, "users"));
+        if (querySnapshot.empty) {
+          usersDiv.innerHTML = "<p>No users found.</p>";
+          return;
+        }
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          const div = document.createElement("div");
+          div.className = "user-card";
+          div.innerHTML = `
+            <span class="material-icons">person</span>
+            <div>
+              <span><strong>${data.email || "Unknown"}</strong></span><br>
+              <span>UID: ${doc.id}</span>
+            </div>
+          `;
+          usersDiv.appendChild(div);
+        });
+      } catch (err) {
+        usersDiv.innerHTML = `<p>Error loading users: ${err.message}</p>`;
+      }
+    }
+    loadUsers();
+  </script>
+</body>
+  </html>
