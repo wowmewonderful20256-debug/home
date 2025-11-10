@@ -122,106 +122,107 @@
 </main>
 
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
-  import { getFirestore, doc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
-  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+import { getFirestore, doc, getDoc, updateDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyBiGzil9wA3CXZWxWjHsn7iKPkiYQozQW8",
-    authDomain: "timesphere-9f7e0.firebaseapp.com",
-    projectId: "timesphere-9f7e0",
-    storageBucket: "timesphere-9f7e0.firebasestorage.app",
-    messagingSenderId: "94629610195",
-    appId: "1:94629610195:web:a037e5c5aa0c5ba7e50a26"
-  };
+const firebaseConfig = {
+  apiKey: "AIzaSyBiGzil9wA3CXZWxWjHsn7iKPkiYQozQW8",
+  authDomain: "timesphere-9f7e0.firebaseapp.com",
+  projectId: "timesphere-9f7e0",
+  storageBucket: "timesphere-9f7e0.firebasestorage.app",
+  messagingSenderId: "94629610195",
+  appId: "1:94629610195:web:a037e5c5aa0c5ba7e50a26"
+};
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  const auth = getAuth(app);
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
 
-  // Clock
-  function updateClock() {
-    const now = new Date();
-    const options = { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Europe/London' };
-    document.getElementById('clock').textContent = new Intl.DateTimeFormat('en-GB', options).format(now);
-  }
-  setInterval(updateClock,1000);
-  updateClock();
+// Clock
+function updateClock() {
+  const now = new Date();
+  const options = { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Europe/London' };
+  document.getElementById('clock').textContent = new Intl.DateTimeFormat('en-GB', options).format(now);
+}
+setInterval(updateClock, 1000);
+updateClock();
 
-  // Menu toggle
-  const sideMenu = document.getElementById('sideMenu');
-  const overlay = document.getElementById('menuOverlay');
-  document.getElementById('menuToggle').addEventListener('click',()=>{ sideMenu.classList.add('open'); overlay.classList.add('show'); });
-  overlay.addEventListener('click',()=>{ sideMenu.classList.remove('open'); overlay.classList.remove('show'); });
+// Menu toggle
+const sideMenu = document.getElementById('sideMenu');
+const overlay = document.getElementById('menuOverlay');
+document.getElementById('menuToggle').addEventListener('click', () => {
+  sideMenu.classList.add('open'); overlay.classList.add('show');
+});
+overlay.addEventListener('click', () => { sideMenu.classList.remove('open'); overlay.classList.remove('show'); });
 
-  // Logout
-  document.getElementById('logoutBtn').addEventListener('click', async()=>{ await signOut(auth); window.location.href='/login/index.html'; });
+// Logout
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await signOut(auth);
+  window.location.href = '/login/index.html';
+});
 
-  // Get group name from URL
-  const params = new URLSearchParams(window.location.search);
-  const groupName = params.get("name");
+// Get group name from URL
+const params = new URLSearchParams(window.location.search);
+const groupName = params.get("name");
+const groupRef = doc(db, "group", groupName);
 
-  onAuthStateChanged(auth, async (user)=>{
-    if(!user){ window.location.href='/login/index.html'; return; }
+// Elements
+const groupNameInput = document.getElementById("groupNameInput");
+const groupDescInput = document.getElementById("groupDescInput");
+const saveBtn = document.getElementById("saveBtn");
+const postsContainer = document.getElementById("postsContainer");
 
-    const groupDiv = document.getElementById("groupInfo");
+onAuthStateChanged(auth, async (user) => {
+  if (!user) { window.location.href = '/login/index.html'; return; }
 
-    if(!groupName){ groupDiv.innerHTML="<p>No group specified.</p>"; return; }
-
-    try{
-      const docRef = doc(db,"group",groupName);
-      const docSnap = await getDoc(docRef);
-
-      if(!docSnap.exists()){
-        groupDiv.innerHTML="<p>Group not found.</p>";
-        return;
-      }
-
-      const data = docSnap.data();
-
-      // Jeśli current user nie jest ownerem → redirect
-      if(user.uid !== data.owner){
-        groupDiv.innerHTML=`<p>Redirecting... (Reason: your uid not owner this group)</p>`;
-        setTimeout(()=>{ window.location.href="/home/dashboard/groups/"; },3000);
-        return;
-      }
-
-      // Jeśli jest owner → pokaz pola do edycji
-      groupDiv.innerHTML=`
-        <h2>Edit Group: ${groupName}</h2>
-        <label>Name:</label>
-        <input type="text" id="groupNameInput" value="${groupName}" disabled />
-        <label>Description:</label>
-        <textarea id="groupDescInput">${data.description || ""}</textarea>
-        <h3>Posts:</h3>
-        <div id="groupPosts">Loading posts...</div>
-        <button id="saveBtn">Save Changes</button>
-      `;
-
-      // Load posts
-      const postsQuery = query(collection(db,"post_group"), where("group","==",groupName));
-      const postsSnap = await getDocs(postsQuery);
-      const postsDiv = document.getElementById("groupPosts");
-      postsDiv.innerHTML="";
-      postsSnap.forEach(doc=>{
-        const d = doc.data();
-        const div = document.createElement("div");
-        div.className="post-card";
-        div.innerHTML=`<span class="material-icons">post_add</span><span>${d.text}</span>`;
-        postsDiv.appendChild(div);
-      });
-
-      // Save changes
-      document.getElementById("saveBtn").addEventListener("click",async()=>{
-        const desc = document.getElementById("groupDescInput").value;
-        await db.collection("group").doc(groupName).update({ description: desc });
-        alert("Group updated!");
-      });
-
-    }catch(err){
-      groupDiv.innerHTML=`<p>Error loading group: ${err.message}</p>`;
+  try {
+    const groupSnap = await getDoc(groupRef);
+    if (!groupSnap.exists()) {
+      alert("Group not found!");
+      window.location.href = '/home/dashboard/groups/';
+      return;
     }
-  });
-</script>
+
+    const groupData = groupSnap.data();
+
+    // Check if user is owner
+    if (user.uid !== groupData.owner) {
+      alert("Redirecting... Reason: your UID not owner this group");
+      window.location.href = '/home/dashboard/groups/';
+      return;
+    }
+
+    // Populate fields
+    groupNameInput.value = groupData.name || groupName;
+    groupDescInput.value = groupData.description || "";
+
+    // Load posts
+    const postsSnap = await getDocs(collection(db, "post_group", groupName, "posts"));
+    postsContainer.innerHTML = "";
+    postsSnap.forEach(postDoc => {
+      const postData = postDoc.data();
+      const div = document.createElement("div");
+      div.className = "post-card";
+      div.innerHTML = `
+        <span class="material-icons">note</span>
+        <span>${postData.text}</span>
+      `;
+      postsContainer.appendChild(div);
+    });
+
+    // Save button
+    saveBtn.addEventListener("click", async () => {
+      await updateDoc(groupRef, {
+        description: groupDescInput.value
+      });
+      alert("Group saved successfully!");
+    });
+
+  } catch (err) {
+    alert("Error loading group: " + err.message);
+  }
+});
+  </script>
 </body>
   </html>
