@@ -159,103 +159,104 @@
   </main>
 
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
-    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
-    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+  import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
+  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyBiGzil9wA3CXZWxWjHsn7iKPkiYQozQW8",
-      authDomain: "timesphere-9f7e0.firebaseapp.com",
-      projectId: "timesphere-9f7e0",
-      storageBucket: "timesphere-9f7e0.firebasestorage.app",
-      messagingSenderId: "94629610195",
-      appId: "1:94629610195:web:a037e5c5aa0c5ba7e50a26"
-    };
+  const firebaseConfig = {
+    apiKey: "AIzaSyBiGzil9wA3CXZWxWjHsn7iKPkiYQozQW8",
+    authDomain: "timesphere-9f7e0.firebaseapp.com",
+    projectId: "timesphere-9f7e0",
+    storageBucket: "timesphere-9f7e0.firebasestorage.app",
+    messagingSenderId: "94629610195",
+    appId: "1:94629610195:web:a037e5c5aa0c5ba7e50a26"
+  };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const auth = getAuth(app);
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
 
-    // Clock
-    function updateClock() {
-      const now = new Date();
-      const options = { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Europe/London' };
-      document.getElementById('clock').textContent = new Intl.DateTimeFormat('en-GB', options).format(now);
-    }
-    setInterval(updateClock, 1000);
-    updateClock();
-
-    // Menu toggle
-    const sideMenu = document.getElementById('sideMenu');
-    const overlay = document.getElementById('menuOverlay');
-    document.getElementById('menuToggle').addEventListener('click', () => {
-      sideMenu.classList.add('open'); overlay.classList.add('show');
-    });
-    overlay.addEventListener('click', () => { sideMenu.classList.remove('open'); overlay.classList.remove('show'); });
-
-    // Logout
-    document.getElementById('logoutBtn').addEventListener('click', async () => {
-      await signOut(auth);
-      window.location.href = '/login/index.html';
-    });
-
-    // Search
-    const searchBtn = document.getElementById('searchBtn');
-    const searchInput = document.getElementById('searchInput');
-    function performSearch() {
-      const query = searchInput.value.trim();
-      if (query) window.location.href = `/home/dashboard/users/search.html?query=${encodeURIComponent(query)}`;
-    }
-    searchBtn.addEventListener('click', performSearch);
-    searchInput.addEventListener('keypress', e => { if(e.key==='Enter') performSearch(); });
-
-    // Get query from URL
-    const params = new URLSearchParams(window.location.search);
-    const query = params.get("query") || "";
-    document.getElementById('searchInput').value = query;
-    document.getElementById('searchInfo').textContent = query ? `Search Users Results For '${query}'` : "";
-
-    // Load users after login
-    onAuthStateChanged(auth, async (user) => {
-      if (!user) { window.location.href = '/login/index.html'; return; }
-
-      const usersDiv = document.getElementById('usersList');
-      usersDiv.innerHTML = "Loading users...";
-
-      try {
-  const querySnapshot = await getDocs(collection(db, "users"));
-  usersDiv.innerHTML = "";
-
-  const results = [];
-  querySnapshot.forEach((doc) => {
-    const data = doc.data();
-    // Szukamy po UID (czyli ID dokumentu)
-    if (doc.id.toLowerCase().includes(query.toLowerCase())) {
-      results.push({ id: doc.id });
-    }
-  });
-
-  if (results.length === 0) {
-    usersDiv.innerHTML = "<p>No users found.</p>";
-    return;
+  // Clock
+  function updateClock() {
+    const now = new Date();
+    const options = { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Europe/London' };
+    document.getElementById('clock').textContent = new Intl.DateTimeFormat('en-GB', options).format(now);
   }
+  setInterval(updateClock, 1000);
+  updateClock();
 
-  results.forEach(u => {
-    const div = document.createElement("div");
-    div.className = "user-card";
-    div.innerHTML = `
-      <span class="material-icons">person</span>
-      <div>
-        <span>UID: ${u.id}</span>
-      </div>
-    `;
-    usersDiv.appendChild(div);
+  // Menu toggle
+  const sideMenu = document.getElementById('sideMenu');
+  const overlay = document.getElementById('menuOverlay');
+  document.getElementById('menuToggle').addEventListener('click', () => {
+    sideMenu.classList.add('open'); overlay.classList.add('show');
+  });
+  overlay.addEventListener('click', () => { sideMenu.classList.remove('open'); overlay.classList.remove('show'); });
+
+  // Logout
+  document.getElementById('logoutBtn').addEventListener('click', async () => {
+    await signOut(auth);
+    window.location.href = '/login/index.html';
   });
 
-} catch (err) {
-  usersDiv.innerHTML = `<p>Error loading users: ${err.message}</p>`;
-}
-    });
-  </script>
+  // Search redirect
+  const searchBtn = document.getElementById('searchBtn');
+  const searchInput = document.getElementById('searchInput');
+  function performSearch() {
+    const query = searchInput.value.trim();
+    if (query) window.location.href = `/home/dashboard/users/search.html?query=${encodeURIComponent(query)}`;
+  }
+  searchBtn.addEventListener('click', performSearch);
+  searchInput.addEventListener('keypress', e => { if (e.key === 'Enter') performSearch(); });
+
+  // Get query from URL
+  const params = new URLSearchParams(window.location.search);
+  const query = params.get("query") || "";
+  document.getElementById('searchInput').value = query;
+  document.getElementById('searchInfo').textContent = query ? `Search Users Results For '${query}'` : "";
+
+  // Load users after login
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      window.location.href = '/login/index.html';
+      return;
+    }
+
+    const usersDiv = document.getElementById('usersList');
+    usersDiv.innerHTML = "Loading users...";
+
+    try {
+      const snapshot = await getDocs(collection(db, "users"));
+      usersDiv.innerHTML = "";
+
+      const results = [];
+
+      snapshot.forEach((doc) => {
+        // Szukanie po UID (czyli ID dokumentu)
+        if (query && doc.id.toLowerCase().includes(query.toLowerCase())) {
+          results.push({ id: doc.id });
+        }
+      });
+
+      if (results.length === 0) {
+        usersDiv.innerHTML = "<p>No users found.</p>";
+        return;
+      }
+
+      results.forEach(u => {
+        const div = document.createElement("div");
+        div.className = "user-card";
+        div.innerHTML = `
+          <span class="material-icons">person</span>
+          <div><span>UID: ${u.id}</span></div>
+        `;
+        usersDiv.appendChild(div);
+      });
+
+    } catch (err) {
+      usersDiv.innerHTML = `<p>Error loading users: ${err.message}</p>`;
+    }
+  });
+</script>
 </body>
     </html>
