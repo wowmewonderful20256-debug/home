@@ -215,6 +215,10 @@ onAuthStateChanged(auth, async (user) => {
 
     // Load posts
     const postsSnap = await getDocs(collection(db, "post_group", groupName, "posts"));
+postsSnap.forEach(postDoc => {
+  const postData = postDoc.data();
+  // postDoc.id to unikalne ID, a postData.text to zawartość posta
+});
     postsContainer.innerHTML = "";
     if (postsSnap.empty) {
       postsContainer.innerHTML = "<p>No posts found.</p>";
