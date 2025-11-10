@@ -223,38 +223,36 @@
       usersDiv.innerHTML = "Loading users...";
 
       try {
-        const querySnapshot = await getDocs(collection(db, "users"));
-        usersDiv.innerHTML = "";
+  const querySnapshot = await getDocs(collection(db, "users"));
+  usersDiv.innerHTML = "";
 
-        const results = [];
-        querySnapshot.forEach((doc) => {
-          const data = doc.data();
-          if (doc.id.toLowerCase().includes(query.toLowerCase())) {
-  results.push({ id: doc.id });
+  const results = [];
+  querySnapshot.forEach((doc) => {
+    if (doc.id.toLowerCase().includes(query.toLowerCase())) {
+      results.push({ id: doc.id });
     }
-          }
-        });
+  });
 
-        if (results.length === 0) {
-          usersDiv.innerHTML = "<p>No users found.</p>";
-          return;
-        }
+  if (results.length === 0) {
+    usersDiv.innerHTML = "<p>No users found.</p>";
+    return;
+  }
 
-        results.forEach(u => {
-          const div = document.createElement("div");
-          div.className = "user-card";
-            div.innerHTML = `
-  <span class="material-icons">person</span>
-  <div>
-    <span>UID: ${u.id}</span>
-  </div>
-`;
-          usersDiv.appendChild(div);
-        });
+  results.forEach(u => {
+    const div = document.createElement("div");
+    div.className = "user-card";
+    div.innerHTML = `
+      <span class="material-icons">person</span>
+      <div>
+        <span>UID: ${u.id}</span>
+      </div>
+    `;
+    usersDiv.appendChild(div);
+  });
 
-      } catch (err) {
-        usersDiv.innerHTML = `<p>Error loading users: ${err.message}</p>`;
-      }
+} catch (err) {
+  usersDiv.innerHTML = `<p>Error loading users: ${err.message}</p>`;
+}
     });
   </script>
 </body>
