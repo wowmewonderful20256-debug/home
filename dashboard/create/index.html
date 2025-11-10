@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>TimeSphere | Create</title>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    /* --- keep same visual language as other dashboard pages --- */
+    :root { --card-bg: rgba(255,255,255,0.08); --card-bg-2: rgba(255,255,255,0.12); }
+    body {
+      margin:0; font-family:'Poppins',sans-serif;
+      background: linear-gradient(135deg,#5d54a4,#7c78b8);
+      color: white; overflow-x:hidden;
+    }
+    header {
+      display:flex; justify-content:space-between; align-items:center;
+      padding:1rem 2rem; background: rgba(255,255,255,0.1); backdrop-filter: blur(8px);
+      position:fixed; width:100%; top:0; z-index:10;
+    }
+    .menu-btn { font-size:2rem; cursor:pointer; transition: transform .3s; }
+    .menu-btn:hover { transform:scale(1.06); }
+    .title { font-weight:600; font-size:1.4rem; }
+    .right { display:flex; align-items:center; gap:1rem; }
+    .clock, .logout-btn { font-weight:600; }
+    .logout-btn {
+      cursor:pointer; background: rgba(255,255,255,0.15); padding:0.5rem 1rem; border-radius:8px;
+      transition: background .2s;
+    }
+    .logout-btn:hover { background: rgba(255,255,255,0.28); }
+
+    /* side menu */
+    #sideMenu {
+      position:fixed; top:0; left:-260px; width:260px; height:100%;
+      background: rgba(0,0,0,0.32); backdrop-filter: blur(8px); padding-top:4rem;
+      transition:left .35s; z-index:20;
+    }
+    #sideMenu.open { left:0; }
+    #sideMenu a { display:flex; align-items:center; gap:1rem; padding:1rem 1.25rem; color:white; text-decoration:none; transition: background .18s; }
+    #sideMenu a:hover { background: rgba(255,255,255,0.06); }
+
+    #menuOverlay { display:none; position:fixed; inset:0; background: rgba(0,0,0,0.32); z-index:15; }
+    #menuOverlay.show { display:block; }
+
+    main { margin-top:90px; padding:2rem; display:flex; flex-direction:column; gap:1.5rem; align-items:center; }
+
+    .card {
+      width:90%; max-width:1100px; background:var(--card-bg); border-radius:18px; padding:20px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+    }
+
+    .heading { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:16px; }
+    .heading h2 { margin:0; font-size:1.25rem; }
+
+    /* grid of creation options */
+    .create-grid {
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap:16px;
+      margin-top:8px;
+    }
+
+    .create-item {
+      background: var(--card-bg-2);
+      border-radius:12px;
+      padding:18px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      align-items:flex-start;
+      transition: transform .15s, box-shadow .15s;
+      text-decoration:none;
+      color:inherit;
+    }
+    .create-item:hover { transform: translateY(-6px); box-shadow: 0 12px 30px rgba(0,0,0,0.35); }
+
+    .ci-top { display:flex; gap:12px; align-items:center; width:100%; }
+    .ci-icon {
+      width:48px; height:48px; border-radius:10px; display:grid; place-items:center;
+      background: linear-gradient(135deg,#ff8a00,#e52e71); font-weight:700; font-size:20px;
+    }
+    .ci-title { font-weight:700; font-size:1rem; }
+    .ci-desc { opacity:0.95; font-size:0.92rem; margin-top:4px; color: #f7f7f7; }
+
+    .see-creations {
+      display:flex; align-items:center; gap:10px; justify-content:center;
+      margin-top:18px; padding:10px 14px; border-radius:12px; cursor:pointer;
+      background: rgba(255,255,255,0.06); text-decoration:none; color:inherit; width:fit-content;
+      transition: background .12s, transform .12s;
+    }
+    .see-creations:hover { background: rgba(255,255,255,0.12); transform: translateY(-3px); }
+
+    /* small helper */
+    .muted { opacity:0.9; font-size:0.95rem; }
+
+    @media (max-width:600px) {
+      .ci-icon { width:44px; height:44px; font-size:18px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="menu-btn material-icons" id="menuToggle">menu</span>
+    <h1 class="title">TimeSphere</h1>
+    <div class="right">
+      <div class="clock" id="clock">--:--</div>
+      <div class="logout-btn" id="logoutBtn">Logout</div>
+    </div>
+  </header>
+
+  <nav id="sideMenu">
+    <a href="/home/dashboard/"><span class="material-icons">home</span>Dashboard</a>
+    <a href="/home/dashboard/users/"><span class="material-icons">group</span>Users</a>
+    <a href="/home/dashboard/groups/"><span class="material-icons">groups</span>Groups</a>
+    <a href="/home/dashboard/create/"><span class="material-icons">add_circle</span>Create</a>
+    <a href="/home/dashboard/user-storage/"><span class="material-icons">storage</span>Storage</a>
+    <a href="/home/dashboard/coins/"><span class="material-icons">paid</span>Coins</a>
+    <a href="/home/dashboard/quests-and-rewards/"><span class="material-icons">emoji_events</span>Quests</a>
+    <a href="/home/dashboard/settings/"><span class="material-icons">settings</span>Settings</a>
+  </nav>
+  <div id="menuOverlay"></div>
+
+  <main>
+    <div class="card">
+      <div class="heading">
+        <h2>Create New Your Items:</h2>
+        <div class="muted">Pick one of the item types below to start creating</div>
+      </div>
+
+      <div class="create-grid">
+        <a class="create-item" href="/home/dashboard/create/countdown.html" title="Create Countdown">
+          <div class="ci-top">
+            <div class="ci-icon"><span class="material-icons">timer</span></div>
+            <div>
+              <div class="ci-title">Create Countdown</div>
+              <div class="ci-desc">Build a countdown timer with date &amp; alerts</div>
+            </div>
+          </div>
+        </a>
+
+        <a class="create-item" href="/home/dashboard/create/clock.html" title="Create Clock">
+          <div class="ci-top">
+            <div class="ci-icon"><span class="material-icons">watch</span></div>
+            <div>
+              <div class="ci-title">Create Clock</div>
+              <div class="ci-desc">Configure a custom clock (analog/digital)</div>
+            </div>
+          </div>
+        </a>
+
+        <a class="create-item" href="/home/dashboard/create/time.html" title="Create Current Time">
+          <div class="ci-top">
+            <div class="ci-icon"><span class="material-icons">schedule</span></div>
+            <div>
+              <div class="ci-title">Create Current Time</div>
+              <div class="ci-desc">Show timezone-based current time display</div>
+            </div>
+          </div>
+        </a>
+
+        <a class="create-item" href="/home/dashboard/create/group_make.html" title="Create Group">
+          <div class="ci-top">
+            <div class="ci-icon"><span class="material-icons">group_add</span></div>
+            <div>
+              <div class="ci-title">Create Group</div>
+              <div class="ci-desc">Create a new group for members &amp; posts</div>
+            </div>
+          </div>
+        </a>
+      </div>
+
+      <div style="display:flex; justify-content:center;">
+        <a class="see-creations" href="/home/dashboard/creations/">
+          <span>See your creations</span>
+          <span class="material-icons">arrow_forward</span>
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+    import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBiGzil9wA3CXZWxWjHsn7iKPkiYQozQW8",
+      authDomain: "timesphere-9f7e0.firebaseapp.com",
+      projectId: "timesphere-9f7e0",
+      storageBucket: "timesphere-9f7e0.firebasestorage.app",
+      messagingSenderId: "94629610195",
+      appId: "1:94629610195:web:a037e5c5aa0c5ba7e50a26"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    // Clock (Europe/London)
+    function updateClock() {
+      const now = new Date();
+      const options = { hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit', timeZone:'Europe/London' };
+      document.getElementById('clock').textContent = new Intl.DateTimeFormat('en-GB', options).format(now);
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // Menu toggle
+    const menuToggle = document.getElementById('menuToggle');
+    const sideMenu = document.getElementById('sideMenu');
+    const overlay = document.getElementById('menuOverlay');
+    menuToggle.addEventListener('click', () => { sideMenu.classList.add('open'); overlay.classList.add('show'); });
+    overlay.addEventListener('click', () => { sideMenu.classList.remove('open'); overlay.classList.remove('show'); });
+
+    // Logout button
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      await signOut(auth);
+      window.location.href = '/login/index.html';
+    });
+
+    // Optional: redirect to login if not authenticated (keeps behavior consistent with other pages)
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        // not logged in -> redirect to login
+        // comment out if you want create page public
+        window.location.href = '/login/index.html';
+      }
+    });
+  </script>
+</body>
+  </html>
