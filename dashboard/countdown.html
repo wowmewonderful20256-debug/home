@@ -56,7 +56,6 @@
   <div id="menuOverlay"></div>
 
   <main>
-    <div class="card" id="countdownCard">
       <!-- W main/card dodajemy przyciski nad licznikiem -->
 <div class="card" id="countdownCard">
   <div id="titleName">Loading countdown...</div>
@@ -67,138 +66,120 @@
   </div>
   <div id="countdownDisplay" class="countdown-display">--:--:--:--</div>
 </div>
-      <div id="titleName">Loading countdown...</div>
-      <div class="muted" id="endAtText">—</div>
-      <div id="countdownDisplay" class="countdown-display">--:--:--:--</div>
-    </div>
   </main>
 
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
-    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyBiGzil9wA3CXZWxWjHsn7iKPkiYQozQW8",
-      authDomain: "timesphere-9f7e0.firebaseapp.com",
-      projectId: "timesphere-9f7e0",
-      storageBucket: "timesphere-9f7e0.firebasestorage.app",
-      messagingSenderId: "94629610195",
-      appId: "1:94629610195:web:a037e5c5aa0c5ba7e50a26"
-    };
+const firebaseConfig = {
+  apiKey: "AIzaSyBiGzil9wA3CXZWxWjHsn7iKPkiYQozQW8",
+  authDomain: "timesphere-9f7e0.firebaseapp.com",
+  projectId: "timesphere-9f7e0",
+  storageBucket: "timesphere-9f7e0.firebasestorage.app",
+  messagingSenderId: "94629610195",
+  appId: "1:94629610195:web:a037e5c5aa0c5ba7e50a26"
+};
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const auth = getAuth(app);
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
 
-    // header clock
-    function updateClock() {
-      const now = new Date();
-      const options = { hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit', timeZone:'Europe/London' };
-      document.getElementById('clock').textContent = new Intl.DateTimeFormat('en-GB', options).format(now);
-    }
-    setInterval(updateClock,1000);
-    updateClock();
+// Clock in header
+function updateClock() {
+  const now = new Date();
+  const options = { hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit', timeZone:'Europe/London' };
+  document.getElementById('clock').textContent = new Intl.DateTimeFormat('en-GB', options).format(now);
+}
+setInterval(updateClock,1000);
+updateClock();
 
-    // menu toggle
-    const sideMenu = document.getElementById('sideMenu');
-    const overlay = document.getElementById('menuOverlay');
-    document.getElementById('menuToggle').addEventListener('click', ()=>{ sideMenu.classList.add('open'); overlay.classList.add('show'); });
-    overlay.addEventListener('click', ()=>{ sideMenu.classList.remove('open'); overlay.classList.remove('show'); });
+// Menu toggle
+const sideMenu = document.getElementById('sideMenu');
+const overlay = document.getElementById('menuOverlay');
+document.getElementById('menuToggle').addEventListener('click', ()=>{ sideMenu.classList.add('open'); overlay.classList.add('show'); });
+overlay.addEventListener('click', ()=>{ sideMenu.classList.remove('open'); overlay.classList.remove('show'); });
 
-    // logout
-    document.getElementById('logoutBtn').addEventListener('click', ()=>{ location.href = '/login/index.html'; });
+// Logout
+document.getElementById('logoutBtn').addEventListener('click', ()=>{ location.href='/login/index.html'; });
 
-    // get countdown id from url
-    const params = new URLSearchParams(window.location.search);
-    const countdownId = params.get('name');
-    const titleName = document.getElementById('titleName');
-    const endAtText = document.getElementById('endAtText');
-    const countdownDisplay = document.getElementById('countdownDisplay');
-
-    let targetTime = null;
-    let color = 'white';
-
-    onAuthStateChanged(auth, async (user)=>{
-      if(!user) location.href='/login/index.html';
-    });
-
-    async function loadCountdown(){
-      if(!countdownId) { titleName.textContent="Countdown not found!"; return; }
-      const docRef = doc(db,'countdowns',countdownId);
-      const docSnap = await getDoc(docRef);
-      if(!docSnap.exists()){ titleName.textContent="Countdown not found!"; return; }
-      const data = docSnap.data();
-      titleName.textContent = data.name || countdownId;
-      endAtText.textContent = `Ends at (UTC): ${data.endAt}`;
-      color = data.color || 'white';
-      applyColor();
-
-      const shareBtn = document.getElementById('shareBtn');
+// Countdown elements
+const params = new URLSearchParams(window.location.search);
+const countdownId = params.get('name');
+const titleName = document.getElementById('titleName');
+const endAtText = document.getElementById('endAtText');
+const countdownDisplay = document.getElementById('countdownDisplay');
+const shareBtn = document.getElementById('shareBtn');
 const editBtn = document.getElementById('editBtn');
 
-// Share do schowka
+let targetTime = null;
+let color = 'white';
+let ownerUid = null;
+
+// Share button
 shareBtn.addEventListener('click', () => {
-  const url = window.location.href;
-  navigator.clipboard.writeText(url)
+  navigator.clipboard.writeText(window.location.href)
     .then(() => alert('Link copied to clipboard!'))
     .catch(err => alert('Failed to copy link: ' + err));
 });
 
-// Sprawdzenie właściciela
-let ownerUid = null;
+// Load countdown after auth
+onAuthStateChanged(auth, async (user) => {
+  if(!user){ location.href='/login/index.html'; return; }
+  await loadCountdown(user.uid);
+});
 
-async function loadCountdown(){
-  if(!countdownId) { titleName.textContent="Countdown not found!"; return; }
+async function loadCountdown(currentUid){
+  if(!countdownId){ titleName.textContent="Countdown not found!"; return; }
+
   const docRef = doc(db,'countdowns',countdownId);
   const docSnap = await getDoc(docRef);
   if(!docSnap.exists()){ titleName.textContent="Countdown not found!"; return; }
+
   const data = docSnap.data();
   titleName.textContent = data.name || countdownId;
   endAtText.textContent = `Ends at (UTC): ${data.endAt}`;
   color = data.color || 'white';
-  ownerUid = data.ownerUid;  // UID właściciela countdownu
+  targetTime = new Date(data.endAt).getTime();
+  ownerUid = data.ownerUid;
+
+  // Show edit button only for owner
+  if(currentUid === ownerUid){
+    editBtn.style.display = 'inline';
+    editBtn.addEventListener('click', ()=>{
+      window.location.href = `/home/dashboard/edit-countdown?name=${encodeURIComponent(countdownId)}`;
+    });
+  }
+
   applyColor();
+}
 
-  // pokaż ołówek tylko dla właściciela
-  onAuthStateChanged(auth, user => {
-    if(user && user.uid === ownerUid){
-      editBtn.style.display = 'inline';
-      editBtn.addEventListener('click', () => {
-        window.location.href = `/home/dashboard/edit-countdown?name=${encodeURIComponent(countdownId)}`;
-      });
-    }
-  });
+function applyColor(){
+  switch(color){
+    case 'green': countdownDisplay.style.color='#3ccf8e'; break;
+    case 'blue': countdownDisplay.style.color='#4da6ff'; break;
+    case 'yellow': countdownDisplay.style.color='#ffd24d'; break;
+    default: countdownDisplay.style.color='#ffffff'; break;
+  }
+}
 
-      // compute target time in ms
-      targetTime = new Date(data.endAt).getTime();
-    }
+function updateCountdown(){
+  if(!targetTime) return;
+  const remain = targetTime - Date.now();
+  if(remain <= 0){ countdownDisplay.textContent='00:00:00:00'; return; }
 
-    function applyColor(){
-      switch(color){
-        case 'green': countdownDisplay.style.color = '#3ccf8e'; break;
-        case 'blue': countdownDisplay.style.color = '#4da6ff'; break;
-        case 'yellow': countdownDisplay.style.color = '#ffd24d'; break;
-        default: countdownDisplay.style.color = '#ffffff'; break;
-      }
-    }
+  const s = Math.floor(remain/1000);
+  const days = Math.floor(s/86400);
+  const hrs = Math.floor((s%86400)/3600);
+  const mins = Math.floor((s%3600)/60);
+  const secs = s%60;
 
-    function updateCountdown(){
-      if(!targetTime) return;
-      const now = Date.now();
-      const remain = targetTime - now;
-      if(remain<=0){ countdownDisplay.textContent='00:00:00:00'; return; }
-      const s = Math.floor(remain/1000);
-      const days = Math.floor(s/86400);
-      const hrs = Math.floor((s%86400)/3600);
-      const mins = Math.floor((s%3600)/60);
-      const secs = s%60;
-      countdownDisplay.textContent=`${String(days).padStart(2,'0')}:${String(hrs).padStart(2,'0')}:${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
-    }
+  countdownDisplay.textContent = `${String(days).padStart(2,'0')}:${String(hrs).padStart(2,'0')}:${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+}
 
-    // start
-    await loadCountdown();
-    setInterval(updateCountdown,1000);
-  </script>
+// Start countdown
+setInterval(updateCountdown, 1000);
+</script>
 </body>
   </html>
