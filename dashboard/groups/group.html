@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>TimeSphere — Group</title>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    /* --- Keep same visual style as other dashboard pages --- */
+    body {
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #5d54a4, #7c78b8);
+      color: white;
+      overflow-x: hidden;
+    }
+    header {
+      display:flex; justify-content:space-between; align-items:center;
+      padding:1rem 2rem; background: rgba(255,255,255,0.1); backdrop-filter: blur(8px);
+      position: fixed; width:100%; top:0; z-index:10;
+    }
+    .menu-btn { font-size:2rem; cursor:pointer; transition: transform .3s; }
+    .menu-btn:hover { transform: scale(1.1); }
+    .title { font-weight:600; font-size:1.4rem; }
+    .right { display:flex; align-items:center; gap:1rem; }
+    .clock, .logout-btn { font-weight:600; }
+    .logout-btn {
+      cursor:pointer; background: rgba(255,255,255,0.15); padding:0.5rem 1rem; border-radius:8px;
+      transition: background .3s;
+    }
+    .logout-btn:hover { background: rgba(255,255,255,0.3); }
+
+    #sideMenu {
+      position: fixed; top:0; left:-250px; width:250px; height:100%;
+      background: rgba(0,0,0,0.3); backdrop-filter: blur(8px); padding-top:4rem;
+      transition:left .4s; z-index:20;
+    }
+    #sideMenu.open { left:0; }
+    #sideMenu a { display:flex; align-items:center; gap:1rem; padding:1rem 2rem; color:white; text-decoration:none; transition: background .3s; }
+    #sideMenu a:hover { background: rgba(255,255,255,0.1); }
+
+    #menuOverlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.3); z-index:15; }
+    #menuOverlay.show { display:block; }
+
+    main { margin-top:90px; padding:2rem; display:flex; flex-direction:column; gap:1.5rem; align-items:center; }
+
+    .card {
+      width:90%; max-width:1000px; background: rgba(255,255,255,0.06); border-radius:18px;
+      padding:20px; box-shadow:0 6px 30px rgba(0,0,0,0.25);
+    }
+
+    .group-header { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+    .group-title { display:flex; align-items:center; gap:12px; }
+    .group-avatar {
+      width:72px; height:72px; border-radius:12px; display:grid; place-items:center;
+      background: linear-gradient(135deg,#ff8a00,#e52e71); font-weight:700; font-size:20px;
+    }
+    .group-meta { display:flex; flex-direction:column; }
+    .group-meta .name { font-size:1.4rem; font-weight:700; }
+    .group-meta .desc { margin-top:6px; opacity:0.95; max-width:640px; }
+
+    .controls { display:flex; gap:10px; align-items:center; }
+    .btn {
+      cursor:pointer; border:none; padding:10px 14px; border-radius:10px; font-weight:700;
+      transition: transform .12s, box-shadow .12s;
+    }
+    .btn-primary { background: linear-gradient(90deg,#ff8a00,#e52e71); color:#000; box-shadow:0 8px 24px rgba(229,46,113,0.18); }
+    .btn-ghost { background: rgba(255,255,255,0.06); color: #fff; border: 1px solid rgba(255,255,255,0.06); }
+
+    .tabs { margin-top:18px; display:flex; gap:10px; }
+    .tab { padding:8px 12px; border-radius:10px; cursor:pointer; background: rgba(255,255,255,0.03); font-weight:700; }
+    .tab.active { background: rgba(255,255,255,0.12); }
+
+    .tab-content { margin-top:14px; }
+
+    /* posts */
+    .post-form { display:flex; flex-direction:column; gap:8px; margin-bottom:12px; }
+    textarea { width:100%; min-height:80px; padding:10px; border-radius:10px; border:none; outline:none; resize:vertical; background: rgba(255,255,255,0.03); color:white; }
+    .post { background: rgba(255,255,255,0.03); padding:12px; border-radius:10px; margin-bottom:8px; }
+
+    .stats { display:flex; gap:20px; margin-top:12px; flex-wrap:wrap; }
+    .stat { background: rgba(255,255,255,0.03); padding:10px 12px; border-radius:8px; }
+
+    @media (max-width:700px) {
+      .group-header { flex-direction:column; align-items:flex-start; gap:12px; }
+      .controls { width:100%; justify-content:space-between; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="menu-btn material-icons" id="menuToggle">menu</span>
+    <h1 class="title">TimeSphere</h1>
+    <div class="right">
+      <div class="clock" id="clock">--:--</div>
+      <div class="logout-btn" id="logoutBtn">Logout</div>
+    </div>
+  </header>
+
+  <nav id="sideMenu">
+    <a href="/home/dashboard/"><span class="material-icons">home</span>Dashboard</a>
+    <a href="/home/dashboard/users/"><span class="material-icons">group</span>Users</a>
+    <a href="/home/dashboard/groups/"><span class="material-icons">groups</span>Groups</a>
+    <a href="/home/dashboard/create-new-item/"><span class="material-icons">add_circle</span>Create</a>
+    <a href="/home/dashboard/user-storage/"><span class="material-icons">storage</span>Storage</a>
+    <a href="/home/dashboard/coins/"><span class="material-icons">paid</span>Coins</a>
+    <a href="/home/dashboard/quests-and-rewards/"><span class="material-icons">emoji_events</span>Quests</a>
+    <a href="/home/dashboard/settings/"><span class="material-icons">settings</span>Settings</a>
+  </nav>
+  <div id="menuOverlay"></div>
+
+  <main>
+    <div class="card" id="groupCard">
+      <!-- Filled by script -->
+      <div id="loadingMsg">Loading group...</div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+    import {
+      getFirestore, doc, getDoc, updateDoc, arrayUnion, arrayRemove,
+      collection, query, where, getDocs, addDoc, serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBiGzil9wA3CXZWxWjHsn7iKPkiYQozQW8",
+      authDomain: "timesphere-9f7e0.firebaseapp.com",
+      projectId: "timesphere-9f7e0",
+      storageBucket: "timesphere-9f7e0.firebasestorage.app",
+      messagingSenderId: "94629610195",
+      appId: "1:94629610195:web:a037e5c5aa0c5ba7e50a26"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    // utils
+    function fmtDate(val) {
+      if (!val) return '-';
+      // handle Firestore timestamp object or ISO string
+      try {
+        if (val.toDate) { // Firestore Timestamp
+          return new Date(val.toDate()).toLocaleString();
+        } else {
+          return new Date(val).toLocaleString();
+        }
+      } catch (e) {
+        return String(val);
+      }
+    }
+
+    // Clock
+    function updateClock() {
+      const now = new Date();
+      const options = { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Europe/London' };
+      document.getElementById('clock').textContent = new Intl.DateTimeFormat('en-GB', options).format(now);
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // Menu toggle
+    const sideMenu = document.getElementById('sideMenu');
+    const overlay = document.getElementById('menuOverlay');
+    document.getElementById('menuToggle').addEventListener('click', () => { sideMenu.classList.add('open'); overlay.classList.add('show'); });
+    overlay.addEventListener('click', () => { sideMenu.classList.remove('open'); overlay.classList.remove('show'); });
+
+    // Logout
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      await signOut(auth);
+      window.location.href = '/login/index.html';
+    });
+
+    // Get group name from URL
+    const params = new URLSearchParams(window.location.search);
+    const rawName = params.get('name') || '';
+    const groupName = decodeURIComponent(rawName);
+
+    // Main logic after auth
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        window.location.href = '/login/index.html';
+        return;
+      }
+
+      const uid = user.uid;
+      const groupCard = document.getElementById('groupCard');
+      groupCard.innerHTML = '<div id="loadingMsg">Loading group...</div>';
+
+      // Fetch group document from collection "group" (doc id = groupName)
+      try {
+        if (!groupName) {
+          groupCard.innerHTML = '<p>Group name missing in URL.</p>';
+          return;
+        }
+        const groupRef = doc(db, 'group', groupName);
+        const snap = await getDoc(groupRef);
+
+        if (!snap.exists()) {
+          groupCard.innerHTML = '<p>No group found.</p>';
+          return;
+        }
+
+        const data = snap.data();
+        const owner = data.owner || data.ownerUid || data.ownerId || null;
+        const members = Array.isArray(data.members) ? data.members : (data.memberList || []);
+        const tmember = (typeof data.tmember === 'number') ? data.tmember : (members.length || 0);
+        const createdAt = data.createedAt || data.createdAt || data.created || null;
+        const description = data.description || data.desc || '';
+
+        // Build HTML
+        function buildUI() {
+          groupCard.innerHTML = `
+            <div class="group-header">
+              <div class="group-title">
+                <div class="group-avatar" id="groupAvatar">${(groupName[0]||'G').toUpperCase()}</div>
+                <div class="group-meta">
+                  <div class="name">${groupName}</div>
+                  <div class="desc">${description || '<i>No description</i>'}</div>
+                </div>
+              </div>
+
+              <div class="controls">
+                <div id="joinContainer"></div>
+                <div id="editContainer"></div>
+              </div>
+            </div>
+
+            <div class="tabs" id="tabs">
+              <div class="tab active" data-tab="main">Main</div>
+              <div class="tab" data-tab="posts">Posts</div>
+            </div>
+
+            <div class="tab-content" id="tabContent">
+              <!-- main content -->
+              <div id="mainTab">
+                <div class="stats">
+                  <div class="stat">Total members: <strong id="statMembers">${tmember}</strong></div>
+                  <div class="stat">Date created: <strong id="statCreated">${fmtDate(createdAt)}</strong></div>
+                </div>
+              </div>
+
+              <!-- posts -->
+              <div id="postsTab" style="display:none;">
+                <div class="post-form">
+                  <textarea id="postText" placeholder="Write something to the group..."></textarea>
+                  <div style="display:flex;gap:10px;">
+                    <button id="postBtn" class="btn btn-primary">Post</button>
+                    <button id="refreshPosts" class="btn btn-ghost">Refresh</button>
+                  </div>
+                </div>
+                <div id="postsList">Loading posts...</div>
+              </div>
+            </div>
+          `;
+
+          // Join/Leave & edit buttons
+          const joinContainer = document.getElementById('joinContainer');
+          const editContainer = document.getElementById('editContainer');
+
+          // Determine membership
+          const amMember = members.includes(uid);
+
+          // Join/Leave button
+          const joinBtn = document.createElement('button');
+          joinBtn.className = amMember ? 'btn btn-ghost' : 'btn btn-primary';
+          joinBtn.textContent = amMember ? 'Leave group' : 'Join group';
+          joinContainer.appendChild(joinBtn);
+
+          // Edit (owner only)
+          if (owner && owner === uid) {
+            const editBtn = document.createElement('button');
+            editBtn.className = 'btn btn-ghost';
+            editBtn.innerHTML = '<span class="material-icons">edit</span>';
+            editBtn.title = 'Edit group';
+            editBtn.addEventListener('click', () => {
+              // edit page placeholder
+              window.location.href = `/home/dashboard/groups/edit.html?name=${encodeURIComponent(groupName)}`;
+            });
+            editContainer.appendChild(editBtn);
+          }
+
+          // Join/Leave action
+          joinBtn.addEventListener('click', async () => {
+            joinBtn.disabled = true;
+            try {
+              if (amMember) {
+                // leave
+                await updateDoc(groupRef, {
+                  members: arrayRemove(uid),
+                  tmember: Math.max(0, (typeof tmember === 'number' ? tmember : members.length) - 1)
+                });
+                amMember = false;
+                joinBtn.textContent = 'Join group';
+                joinBtn.className = 'btn btn-primary';
+                document.getElementById('statMembers').textContent = String(Math.max(0, (typeof tmember === 'number' ? tmember : members.length) - 1));
+              } else {
+                // join
+                await updateDoc(groupRef, {
+                  members: arrayUnion(uid),
+                  tmember: (typeof tmember === 'number' ? tmember : members.length) + 1
+                });
+                amMember = true;
+                joinBtn.textContent = 'Leave group';
+                joinBtn.className = 'btn btn-ghost';
+                document.getElementById('statMembers').textContent = String((typeof tmember === 'number' ? tmember : members.length) + 1);
+              }
+            } catch (err) {
+              alert('Failed to update membership: ' + (err.message || err));
+            } finally {
+              joinBtn.disabled = false;
+            }
+          });
+
+          // Tabs switching
+          document.querySelectorAll('#tabs .tab').forEach(t => {
+            t.addEventListener('click', () => {
+              document.querySelectorAll('#tabs .tab').forEach(x => x.classList.remove('active'));
+              t.classList.add('active');
+              const tabName = t.dataset.tab;
+              document.getElementById('mainTab').style.display = tabName === 'main' ? 'block' : 'none';
+              document.getElementById('postsTab').style.display = tabName === 'posts' ? 'block' : 'none';
+            });
+          });
+
+          // Posts logic
+          const postText = document.getElementById('postText');
+          const postBtn = document.getElementById('postBtn');
+          const postsList = document.getElementById('postsList');
+          const refreshBtn = document.getElementById('refreshPosts');
+
+          async function loadPosts() {
+            postsList.innerHTML = 'Loading posts...';
+            try {
+              const q = query(collection(db, 'post_group'), where('group', '==', groupName));
+              const snap = await getDocs(q);
+              postsList.innerHTML = '';
+              if (snap.empty) {
+                postsList.innerHTML = '<p>No posts yet.</p>';
+                return;
+              }
+              // sort by createdAt descending if present
+              const posts = [];
+              snap.forEach(d => {
+                posts.push({ id: d.id, ...d.data() });
+              });
+              posts.sort((a,b) => {
+                const ta = a.createdAt && a.createdAt.toMillis ? a.createdAt.toMillis() : (new Date(a.createdAt || 0)).getTime();
+                const tb = b.createdAt && b.createdAt.toMillis ? b.createdAt.toMillis() : (new Date(b.createdAt || 0)).getTime();
+                return tb - ta;
+              });
+              posts.forEach(p => {
+                const pdiv = document.createElement('div');
+                pdiv.className = 'post';
+                pdiv.innerHTML = `<div style="opacity:0.9;font-size:0.9rem;margin-bottom:6px;"><strong>${p.authorUid || 'Anonymous'}</strong> • ${fmtDate(p.createdAt || p.created)}</div>
+                                  <div>${(p.text || '').replace(/\n/g,'<br>')}</div>`;
+                postsList.appendChild(pdiv);
+              });
+            } catch (err) {
+              postsList.innerHTML = `<p>Error loading posts: ${err.message}</p>`;
+            }
+          }
+
+          postBtn.addEventListener('click', async () => {
+            const text = postText.value.trim();
+            if (!text) return alert('Write a comment first');
+            postBtn.disabled = true;
+            try {
+              await addDoc(collection(db, 'post_group'), {
+                group: groupName,
+                text,
+                authorUid: uid,
+                createdAt: serverTimestamp()
+              });
+              postText.value = '';
+              await loadPosts();
+            } catch (err) {
+              alert('Failed to post: ' + (err.message || err));
+            } finally {
+              postBtn.disabled = false;
+            }
+          });
+
+          refreshBtn.addEventListener('click', loadPosts);
+
+          // initial posts load if posts tab active
+          // load posts lazily when user switches to posts tab OR immediately:
+          loadPosts();
+        } // end buildUI
+
+        buildUI();
+
+      } catch (err) {
+        groupCard.innerHTML = `<p>Error loading group: ${err.message}</p>`;
+        console.error(err);
+      }
+    }); // end onAuthStateChanged
+
+  </script>
+</body>
+  </html>
