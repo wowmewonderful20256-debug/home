@@ -57,6 +57,16 @@
 
   <main>
     <div class="card" id="countdownCard">
+      <!-- W main/card dodajemy przyciski nad licznikiem -->
+<div class="card" id="countdownCard">
+  <div id="titleName">Loading countdown...</div>
+  <div class="muted" id="endAtText">—</div>
+  <div style="margin-top:10px; display:flex; gap:10px; justify-content:center;">
+    <span class="material-icons" id="shareBtn" style="cursor:pointer;" title="Share Countdown">share</span>
+    <span class="material-icons" id="editBtn" style="cursor:pointer; display:none;" title="Edit Countdown">edit</span>
+  </div>
+  <div id="countdownDisplay" class="countdown-display">--:--:--:--</div>
+</div>
       <div id="titleName">Loading countdown...</div>
       <div class="muted" id="endAtText">—</div>
       <div id="countdownDisplay" class="countdown-display">--:--:--:--</div>
@@ -123,6 +133,42 @@
       endAtText.textContent = `Ends at (UTC): ${data.endAt}`;
       color = data.color || 'white';
       applyColor();
+
+      const shareBtn = document.getElementById('shareBtn');
+const editBtn = document.getElementById('editBtn');
+
+// Share do schowka
+shareBtn.addEventListener('click', () => {
+  const url = window.location.href;
+  navigator.clipboard.writeText(url)
+    .then(() => alert('Link copied to clipboard!'))
+    .catch(err => alert('Failed to copy link: ' + err));
+});
+
+// Sprawdzenie właściciela
+let ownerUid = null;
+
+async function loadCountdown(){
+  if(!countdownId) { titleName.textContent="Countdown not found!"; return; }
+  const docRef = doc(db,'countdowns',countdownId);
+  const docSnap = await getDoc(docRef);
+  if(!docSnap.exists()){ titleName.textContent="Countdown not found!"; return; }
+  const data = docSnap.data();
+  titleName.textContent = data.name || countdownId;
+  endAtText.textContent = `Ends at (UTC): ${data.endAt}`;
+  color = data.color || 'white';
+  ownerUid = data.ownerUid;  // UID właściciela countdownu
+  applyColor();
+
+  // pokaż ołówek tylko dla właściciela
+  onAuthStateChanged(auth, user => {
+    if(user && user.uid === ownerUid){
+      editBtn.style.display = 'inline';
+      editBtn.addEventListener('click', () => {
+        window.location.href = `/home/dashboard/edit-countdown?name=${encodeURIComponent(countdownId)}`;
+      });
+    }
+  });
 
       // compute target time in ms
       targetTime = new Date(data.endAt).getTime();
