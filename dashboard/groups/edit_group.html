@@ -117,9 +117,15 @@
 
 <main>
   <div class="section" id="groupInfo">
-    Loading group...
+    <h2>Edit Group: <input type="text" id="groupNameInput" readonly /></h2>
+    <label>Description:</label>
+    <textarea id="groupDescInput"></textarea>
+    <button id="saveBtn">Save</button>
+
+    <h3>Posts:</h3>
+    <div id="postsContainer">Loading posts...</div>
   </div>
-</main>
+                                    </main>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
