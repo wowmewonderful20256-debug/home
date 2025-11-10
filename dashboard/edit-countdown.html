@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TimeSphere | Edit Countdown</title>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family:'Poppins',sans-serif; margin:0; background: linear-gradient(135deg,#5d54a4,#7c78b8); color:white; overflow-x:hidden; }
+    header { display:flex; justify-content:space-between; align-items:center; padding:1rem 2rem; background: rgba(255,255,255,0.1); backdrop-filter: blur(8px); position:fixed; width:100%; top:0; z-index:10; }
+    .menu-btn { font-size:2rem; cursor:pointer; transition: transform .3s; } .menu-btn:hover { transform:scale(1.06); }
+    .title { font-weight:600; font-size:1.4rem; }
+    .right { display:flex; align-items:center; gap:1rem; }
+    .clock, .logout-btn { font-weight:600; }
+    .logout-btn { cursor:pointer; background: rgba(255,255,255,0.15); padding:0.5rem 1rem; border-radius:8px; transition: background .2s; }
+    .logout-btn:hover { background: rgba(255,255,255,0.28); }
+
+    main { margin-top:90px; padding:2rem; display:flex; flex-direction:column; gap:1.5rem; align-items:center; }
+    .section { width:90%; max-width:700px; background: rgba(255,255,255,0.1); border-radius:18px; padding:20px; box-shadow: 0 8px 30px rgba(0,0,0,0.25); }
+    input, textarea, select { width:100%; padding:0.5rem; border-radius:10px; border:none; outline:none; margin-bottom:1rem; background: rgba(255,255,255,0.2); color:white; }
+    button { padding:0.5rem 1rem; border:none; border-radius:10px; cursor:pointer; background: rgba(255,255,255,0.2); color:white; transition:0.3s; }
+    button:hover { background: rgba(255,255,255,0.4); }
+    .preview { font-size:2rem; font-weight:700; text-align:center; margin-top:10px; }
+    .color-option { margin-right:10px; cursor:pointer; font-weight:600; }
+  </style>
+</head>
+<body>
+<header>
+  <span class="menu-btn material-icons" id="menuToggle">menu</span>
+  <h1 class="title">TimeSphere</h1>
+  <div class="right">
+    <div class="clock" id="clock">--:--</div>
+    <div class="logout-btn" id="logoutBtn">Logout</div>
+  </div>
+</header>
+
+<main>
+  <div class="section">
+    <h2>Edit Countdown</h2>
+    <label>Countdown Name:</label>
+    <input type="text" id="countdownNameInput" placeholder="Countdown Name" />
+
+    <label>Countdown Preview:</label>
+    <div class="preview" id="namePreview">--</div>
+
+    <label>End Date & Time:</label>
+    <input type="datetime-local" id="endDateInput" />
+    <label>Time Zone:</label>
+    <select id="timeZoneSelect">
+      <!-- UTC+14 do UTC-12 -->
+      <option value="+14">UTC+14</option>
+      <option value="+13">UTC+13</option>
+      <option value="+12">UTC+12</option>
+      <option value="+11">UTC+11</option>
+      <option value="+10">UTC+10</option>
+      <option value="+9">UTC+9</option>
+      <option value="+8">UTC+8</option>
+      <option value="+7">UTC+7</option>
+      <option value="+6">UTC+6</option>
+      <option value="+5">UTC+5</option>
+      <option value="+4">UTC+4</option>
+      <option value="+3">UTC+3</option>
+      <option value="+2">UTC+2</option>
+      <option value="+1">UTC+1</option>
+      <option value="0">UTC+0</option>
+      <option value="-1">UTC-1</option>
+      <option value="-2">UTC-2</option>
+      <option value="-3">UTC-3</option>
+      <option value="-4">UTC-4</option>
+      <option value="-5">UTC-5</option>
+      <option value="-6">UTC-6</option>
+      <option value="-7">UTC-7</option>
+      <option value="-8">UTC-8</option>
+      <option value="-9">UTC-9</option>
+      <option value="-10">UTC-10</option>
+      <option value="-11">UTC-11</option>
+      <option value="-12">UTC-12</option>
+    </select>
+
+    <label>Countdown Color:</label>
+    <div>
+      <span class="color-option" data-color="white">White</span>
+      <span class="color-option" data-color="green">Green</span>
+      <span class="color-option" data-color="blue">Blue</span>
+      <span class="color-option" data-color="yellow">Yellow</span>
+    </div>
+
+    <button id="saveBtn">Save Countdown and redirect to Countdown page</button>
+  </div>
+</main>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBiGzil9wA3CXZWxWjHsn7iKPkiYQozQW8",
+  authDomain: "timesphere-9f7e0.firebaseapp.com",
+  projectId: "timesphere-9f7e0",
+  storageBucket: "timesphere-9f7e0.firebasestorage.app",
+  messagingSenderId: "94629610195",
+  appId: "1:94629610195:web:a037e5c5aa0c5ba7e50a26"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+// Header clock
+function updateClock() {
+  const now = new Date();
+  const options = { hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit', timeZone:'Europe/London' };
+  document.getElementById('clock').textContent = new Intl.DateTimeFormat('en-GB', options).format(now);
+}
+setInterval(updateClock,1000);
+updateClock();
+
+// Logout
+document.getElementById('logoutBtn').addEventListener('click', ()=>{ location.href='/login/index.html'; });
+
+// Get countdown ID from URL
+const params = new URLSearchParams(window.location.search);
+const countdownId = params.get('name');
+const nameInput = document.getElementById('countdownNameInput');
+const namePreview = document.getElementById('namePreview');
+const endDateInput = document.getElementById('endDateInput');
+const timeZoneSelect = document.getElementById('timeZoneSelect');
+const saveBtn = document.getElementById('saveBtn');
+
+let selectedColor = 'white';
+
+// Color selection
+document.querySelectorAll('.color-option').forEach(el=>{
+  el.addEventListener('click', ()=>{ 
+    selectedColor = el.dataset.color; 
+    document.querySelectorAll('.color-option').forEach(o=>o.style.fontWeight='400');
+    el.style.fontWeight='700';
+  });
+});
+
+// Live preview of name
+nameInput.addEventListener('input', ()=>{ namePreview.textContent = nameInput.value || '--'; });
+
+// Load existing countdown
+onAuthStateChanged(auth, async user=>{
+  if(!user){ location.href='/login/index.html'; return; }
+  if(!countdownId){ alert('Countdown not found'); return; }
+
+  const docRef = doc(db,'countdowns',countdownId);
+  const docSnap = await getDoc(docRef);
+  if(!docSnap.exists()){ alert('Countdown not found'); return; }
+
+  const data = docSnap.data();
+  nameInput.value = data.name || '';
+  namePreview.textContent = data.name || '--';
+  endDateInput.value = data.endAt ? data.endAt.split('T')[0]+'T'+data.endAt.split('T')[1].slice(0,5) : '';
+  timeZoneSelect.value = data.timeZone || '0';
+  selectedColor = data.color || 'white';
+});
+
+// Save button
+saveBtn.addEventListener('click', async ()=>{
+  if(!countdownId) return;
+  const docRef = doc(db,'countdowns',countdownId);
+  await updateDoc(docRef,{
+    name: nameInput.value,
+    endAt: endDateInput.value,
+    timeZone: timeZoneSelect.value,
+    color: selectedColor
+  });
+  window.location.href = `/home/dashboard/view_countdown.html?name=${encodeURIComponent(countdownId)}`;
+});
+</script>
+</body>
+      </html>
