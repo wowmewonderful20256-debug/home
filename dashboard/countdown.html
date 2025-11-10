@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>TimeSphere | Countdown View</title>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    /* keep visual style consistent */
+    body { margin:0; font-family:'Poppins',sans-serif; background: linear-gradient(135deg,#5d54a4,#7c78b8); color:#fff; overflow-x:hidden; }
+    header { display:flex; justify-content:space-between; align-items:center; padding:1rem 2rem; background: rgba(255,255,255,0.1); backdrop-filter: blur(8px); position:fixed; width:100%; top:0; z-index:10; }
+    .menu-btn { font-size:2rem; cursor:pointer; transition: transform .3s; } .menu-btn:hover { transform:scale(1.06); }
+    .title { font-weight:600; font-size:1.4rem; }
+    .right { display:flex; align-items:center; gap:1rem; }
+    .clock, .logout-btn { font-weight:600; }
+    .logout-btn { cursor:pointer; background: rgba(255,255,255,0.15); padding:0.5rem 1rem; border-radius:8px; transition: background .2s; }
+    .logout-btn:hover { background: rgba(255,255,255,0.28); }
+
+    /* side menu */
+    #sideMenu { position:fixed; top:0; left:-260px; width:260px; height:100%; background: rgba(0,0,0,0.32); backdrop-filter: blur(8px); padding-top:4rem; transition:left .35s; z-index:20; }
+    #sideMenu.open { left:0; }
+    #sideMenu a { display:flex; align-items:center; gap:1rem; padding:1rem 1.25rem; color:white; text-decoration:none; transition: background .18s; }
+    #sideMenu a:hover { background: rgba(255,255,255,0.06); }
+    #menuOverlay { display:none; position:fixed; inset:0; background: rgba(0,0,0,0.32); z-index:15; }
+    #menuOverlay.show { display:block; }
+
+    main { margin-top:90px; padding:2rem; display:flex; flex-direction:column; gap:1.5rem; align-items:center; }
+    .card { width:90%; max-width:900px; background: rgba(255,255,255,0.08); border-radius:18px; padding:20px; box-shadow: 0 8px 30px rgba(0,0,0,0.25); text-align:center; }
+
+    .countdown-display { font-size:3rem; font-weight:800; letter-spacing:1px; margin-top:20px; }
+    .muted { color:rgba(255,255,255,0.7); font-size:0.95rem; margin-top:6px; }
+    .titleName { font-size:1.5rem; font-weight:700; margin-top:8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="menu-btn material-icons" id="menuToggle">menu</span>
+    <h1 class="title">TimeSphere</h1>
+    <div class="right">
+      <div class="clock" id="clock">--:--</div>
+      <div class="logout-btn" id="logoutBtn">Logout</div>
+    </div>
+  </header>
+
+  <nav id="sideMenu">
+    <a href="/home/dashboard/"><span class="material-icons">home</span>Dashboard</a>
+    <a href="/home/dashboard/users/"><span class="material-icons">group</span>Users</a>
+    <a href="/home/dashboard/groups/"><span class="material-icons">groups</span>Groups</a>
+    <a href="/home/dashboard/create/"><span class="material-icons">add_circle</span>Create</a>
+    <a href="/home/dashboard/user-storage/"><span class="material-icons">storage</span>Storage</a>
+    <a href="/home/dashboard/coins/"><span class="material-icons">paid</span>Coins</a>
+    <a href="/home/dashboard/quests-and-rewards/"><span class="material-icons">emoji_events</span>Quests</a>
+    <a href="/home/dashboard/settings/"><span class="material-icons">settings</span>Settings</a>
+  </nav>
+  <div id="menuOverlay"></div>
+
+  <main>
+    <div class="card" id="countdownCard">
+      <div id="titleName">Loading countdown...</div>
+      <div class="muted" id="endAtText">—</div>
+      <div id="countdownDisplay" class="countdown-display">--:--:--:--</div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBiGzil9wA3CXZWxWjHsn7iKPkiYQozQW8",
+      authDomain: "timesphere-9f7e0.firebaseapp.com",
+      projectId: "timesphere-9f7e0",
+      storageBucket: "timesphere-9f7e0.firebasestorage.app",
+      messagingSenderId: "94629610195",
+      appId: "1:94629610195:web:a037e5c5aa0c5ba7e50a26"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    // header clock
+    function updateClock() {
+      const now = new Date();
+      const options = { hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit', timeZone:'Europe/London' };
+      document.getElementById('clock').textContent = new Intl.DateTimeFormat('en-GB', options).format(now);
+    }
+    setInterval(updateClock,1000);
+    updateClock();
+
+    // menu toggle
+    const sideMenu = document.getElementById('sideMenu');
+    const overlay = document.getElementById('menuOverlay');
+    document.getElementById('menuToggle').addEventListener('click', ()=>{ sideMenu.classList.add('open'); overlay.classList.add('show'); });
+    overlay.addEventListener('click', ()=>{ sideMenu.classList.remove('open'); overlay.classList.remove('show'); });
+
+    // logout
+    document.getElementById('logoutBtn').addEventListener('click', ()=>{ location.href = '/login/index.html'; });
+
+    // get countdown id from url
+    const params = new URLSearchParams(window.location.search);
+    const countdownId = params.get('name');
+    const titleName = document.getElementById('titleName');
+    const endAtText = document.getElementById('endAtText');
+    const countdownDisplay = document.getElementById('countdownDisplay');
+
+    let targetTime = null;
+    let color = 'white';
+
+    onAuthStateChanged(auth, async (user)=>{
+      if(!user) location.href='/login/index.html';
+    });
+
+    async function loadCountdown(){
+      if(!countdownId) { titleName.textContent="Countdown not found!"; return; }
+      const docRef = doc(db,'countdowns',countdownId);
+      const docSnap = await getDoc(docRef);
+      if(!docSnap.exists()){ titleName.textContent="Countdown not found!"; return; }
+      const data = docSnap.data();
+      titleName.textContent = data.name || countdownId;
+      endAtText.textContent = `Ends at (UTC): ${data.endAt}`;
+      color = data.color || 'white';
+      applyColor();
+
+      // compute target time in ms
+      targetTime = new Date(data.endAt).getTime();
+    }
+
+    function applyColor(){
+      switch(color){
+        case 'green': countdownDisplay.style.color = '#3ccf8e'; break;
+        case 'blue': countdownDisplay.style.color = '#4da6ff'; break;
+        case 'yellow': countdownDisplay.style.color = '#ffd24d'; break;
+        default: countdownDisplay.style.color = '#ffffff'; break;
+      }
+    }
+
+    function updateCountdown(){
+      if(!targetTime) return;
+      const now = Date.now();
+      const remain = targetTime - now;
+      if(remain<=0){ countdownDisplay.textContent='00:00:00:00'; return; }
+      const s = Math.floor(remain/1000);
+      const days = Math.floor(s/86400);
+      const hrs = Math.floor((s%86400)/3600);
+      const mins = Math.floor((s%3600)/60);
+      const secs = s%60;
+      countdownDisplay.textContent=`${String(days).padStart(2,'0')}:${String(hrs).padStart(2,'0')}:${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+    }
+
+    // start
+    await loadCountdown();
+    setInterval(updateCountdown,1000);
+  </script>
+</body>
+  </html>
