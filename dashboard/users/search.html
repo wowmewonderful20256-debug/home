@@ -228,6 +228,8 @@
 
   const results = [];
   querySnapshot.forEach((doc) => {
+    const data = doc.data();
+    // Szukamy po UID (czyli ID dokumentu)
     if (doc.id.toLowerCase().includes(query.toLowerCase())) {
       results.push({ id: doc.id });
     }
