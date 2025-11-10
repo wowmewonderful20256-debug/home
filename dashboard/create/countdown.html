@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>TimeSphere | Create Countdown</title>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    /* keep visual style consistent with dashboard pages */
+    :root { --card-bg: rgba(255,255,255,0.08); --card-bg-2: rgba(255,255,255,0.12); }
+    body { margin:0; font-family:'Poppins',sans-serif; background: linear-gradient(135deg,#5d54a4,#7c78b8); color:#fff; overflow-x:hidden;}
+    header { display:flex; justify-content:space-between; align-items:center; padding:1rem 2rem; background: rgba(255,255,255,0.1); backdrop-filter: blur(8px); position:fixed; width:100%; top:0; z-index:10; }
+    .menu-btn { font-size:2rem; cursor:pointer; transition: transform .3s; } .menu-btn:hover { transform:scale(1.06); }
+    .title { font-weight:600; font-size:1.4rem; }
+    .right { display:flex; align-items:center; gap:1rem; }
+    .clock, .logout-btn { font-weight:600; }
+    .logout-btn { cursor:pointer; background: rgba(255,255,255,0.15); padding:0.5rem 1rem; border-radius:8px; transition: background .2s; }
+    .logout-btn:hover { background: rgba(255,255,255,0.28); }
+
+    /* side menu */
+    #sideMenu { position:fixed; top:0; left:-260px; width:260px; height:100%; background: rgba(0,0,0,0.32); backdrop-filter: blur(8px); padding-top:4rem; transition:left .35s; z-index:20; }
+    #sideMenu.open { left:0; }
+    #sideMenu a { display:flex; align-items:center; gap:1rem; padding:1rem 1.25rem; color:white; text-decoration:none; transition: background .18s; }
+    #sideMenu a:hover { background: rgba(255,255,255,0.06); }
+    #menuOverlay { display:none; position:fixed; inset:0; background: rgba(0,0,0,0.32); z-index:15; }
+    #menuOverlay.show { display:block; }
+
+    main { margin-top:90px; padding:2rem; display:flex; flex-direction:column; gap:1.5rem; align-items:center; }
+    .card { width:90%; max-width:900px; background:var(--card-bg); border-radius:18px; padding:20px; box-shadow: 0 8px 30px rgba(0,0,0,0.25); }
+
+    .heading { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
+    .heading h2 { margin:0; font-size:1.25rem; }
+
+    /* layout for create form */
+    .form-grid { display:grid; grid-template-columns: 1fr; gap:12px; }
+    .input-row { display:flex; gap:12px; align-items:center; }
+    .icon-box { width:56px; height:56px; border-radius:12px; display:grid; place-items:center; background: linear-gradient(135deg,#ff8a00,#e52e71); font-weight:700; font-size:24px; }
+    input[type="text"], input[type="date"], input[type="time"], select, textarea {
+      width:100%; padding:10px; border-radius:10px; border:none; outline:none; background: rgba(255,255,255,0.06); color:white; font-size:1rem;
+    }
+    label { font-weight:600; font-size:0.95rem; margin-bottom:6px; display:block; }
+
+    .preview {
+      margin-top:10px; padding:12px; border-radius:10px; background: rgba(255,255,255,0.03); text-align:center;
+    }
+    .countdown-display { font-size:2rem; font-weight:800; letter-spacing:1px; }
+
+    .color-options { display:flex; gap:10px; align-items:center; margin-top:6px; }
+    .color-swatch { width:36px; height:36px; border-radius:8px; cursor:pointer; border:2px solid rgba(255,255,255,0.08); display:inline-grid; place-items:center; }
+    .sw-white { background:#fff; } .sw-green { background:#3ccf8e; } .sw-blue { background:#4da6ff; } .sw-yellow { background:#ffd24d; }
+
+    .actions { display:flex; gap:12px; justify-content:center; margin-top:14px; }
+    .btn { padding:10px 14px; border-radius:10px; cursor:pointer; border:none; font-weight:700; }
+    .btn-primary { background: linear-gradient(90deg,#ff8a00,#e52e71); color:#000; }
+    .muted { opacity:0.9; font-size:0.95rem; }
+
+    @media (max-width:600px) {
+      .icon-box { width:48px; height:48px; font-size:20px; }
+      .countdown-display { font-size:1.5rem; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="menu-btn material-icons" id="menuToggle">menu</span>
+    <h1 class="title">TimeSphere</h1>
+    <div class="right">
+      <div class="clock" id="clock">--:--</div>
+      <div class="logout-btn" id="logoutBtn">Logout</div>
+    </div>
+  </header>
+
+  <nav id="sideMenu">
+    <a href="/home/dashboard/"><span class="material-icons">home</span>Dashboard</a>
+    <a href="/home/dashboard/users/"><span class="material-icons">group</span>Users</a>
+    <a href="/home/dashboard/groups/"><span class="material-icons">groups</span>Groups</a>
+    <a href="/home/dashboard/create/"><span class="material-icons">add_circle</span>Create</a>
+    <a href="/home/dashboard/user-storage/"><span class="material-icons">storage</span>Storage</a>
+    <a href="/home/dashboard/coins/"><span class="material-icons">paid</span>Coins</a>
+    <a href="/home/dashboard/quests-and-rewards/"><span class="material-icons">emoji_events</span>Quests</a>
+    <a href="/home/dashboard/settings/"><span class="material-icons">settings</span>Settings</a>
+  </nav>
+  <div id="menuOverlay"></div>
+
+  <main>
+    <div class="card">
+      <div class="heading">
+        <h2>Create Countdown</h2>
+        <div class="muted">Create New Your Items → Countdown</div>
+      </div>
+
+      <div class="form-grid">
+        <!-- name / icon -->
+        <div>
+          <label> <span class="material-icons">hourglass_top</span> Name</label>
+          <div class="input-row">
+            <div class="icon-box"><span class="material-icons">hourglass_bottom</span></div>
+            <input id="nameInput" type="text" placeholder="Countdown name (letters & numbers only recommended)" />
+          </div>
+          <div class="muted" style="margin-top:6px;">Live name preview: <strong id="liveName">—</strong></div>
+        </div>
+
+        <!-- date/time and timezone -->
+        <div>
+          <label><span class="material-icons">alarm</span> End date & time</label>
+          <div class="input-row">
+            <input id="dateInput" type="date" />
+            <input id="timeInput" type="time" />
+            <select id="tzSelect" style="max-width:150px;">
+              <!-- populated by JS -->
+            </select>
+          </div>
+          <div class="muted" style="margin-top:6px;">Selected end (interpreted in chosen timezone)</div>
+        </div>
+
+        <!-- preview -->
+        <div>
+          <label>Countdown preview</label>
+          <div class="preview">
+            <div id="previewDate" class="muted">End at: —</div>
+            <div id="countdownDisplay" class="countdown-display" style="color:#fff;">--:--:--:--</div>
+          </div>
+
+          <div style="margin-top:10px;">
+            <label>Countdown color</label>
+            <div class="color-options">
+              <div class="color-swatch sw-white" data-color="white" title="White"></div>
+              <div class="color-swatch sw-green" data-color="green" title="Green"></div>
+              <div class="color-swatch sw-blue"  data-color="blue"  title="Blue"></div>
+              <div class="color-swatch sw-yellow" data-color="yellow" title="Yellow"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- actions -->
+        <div style="margin-top:8px; display:flex; flex-direction:column; align-items:center;">
+          <div class="actions">
+            <button id="createBtn" class="btn btn-primary">Create Countdown and redirect to your item</button>
+          </div>
+          <div style="margin-top:8px;" class="muted">After creation you'll be redirected to your countdown page.</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+    import {
+      getFirestore, doc, setDoc, getDoc, serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
+
+    // firebase config (same as other pages)
+    const firebaseConfig = {
+      apiKey: "AIzaSyBiGzil9wA3CXZWxWjHsn7iKPkiYQozQW8",
+      authDomain: "timesphere-9f7e0.firebaseapp.com",
+      projectId: "timesphere-9f7e0",
+      storageBucket: "timesphere-9f7e0.firebasestorage.app",
+      messagingSenderId: "94629610195",
+      appId: "1:94629610195:web:a037e5c5aa0c5ba7e50a26"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    // header clock
+    function updateClock() {
+      const now = new Date();
+      const options = { hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit', timeZone:'Europe/London' };
+      document.getElementById('clock').textContent = new Intl.DateTimeFormat('en-GB', options).format(now);
+    }
+    setInterval(updateClock,1000);
+    updateClock();
+
+    // menu toggle
+    const sideMenu = document.getElementById('sideMenu');
+    const overlay = document.getElementById('menuOverlay');
+    document.getElementById('menuToggle').addEventListener('click', ()=>{ sideMenu.classList.add('open'); overlay.classList.add('show'); });
+    overlay.addEventListener('click', ()=>{ sideMenu.classList.remove('open'); overlay.classList.remove('show'); });
+
+    // logout
+    document.getElementById('logoutBtn').addEventListener('click', ()=>{ location.href = '/login/index.html'; });
+
+    // form elements
+    const nameInput = document.getElementById('nameInput');
+    const liveName = document.getElementById('liveName');
+    const dateInput = document.getElementById('dateInput');
+    const timeInput = document.getElementById('timeInput');
+    const tzSelect = document.getElementById('tzSelect');
+    const previewDate = document.getElementById('previewDate');
+    const countdownDisplay = document.getElementById('countdownDisplay');
+    const createBtn = document.getElementById('createBtn');
+    let selectedColor = 'white';
+
+    // populate timezone select (UTC+14 down to UTC-12)
+    (function fillTimezones(){
+      const start = 14;
+      const end = -12;
+      for(let tz = start; tz >= end; tz--){
+        const opt = document.createElement('option');
+        const sign = tz >= 0 ? '+' : '';
+        opt.value = String(tz);
+        opt.textContent = `UTC${sign}${tz}`;
+        if (tz === 0) opt.selected = true;
+        tzSelect.appendChild(opt);
+      }
+    })();
+
+    // live name preview
+    nameInput.addEventListener('input', ()=> {
+      const v = nameInput.value.trim();
+      liveName.textContent = v ? v : '—';
+    });
+
+    // color pick
+    document.querySelectorAll('.color-swatch').forEach(sw => {
+      sw.addEventListener('click', () => {
+        selectedColor = sw.dataset.color;
+        // visual selection border
+        document.querySelectorAll('.color-swatch').forEach(x => x.style.boxShadow = '');
+        sw.style.boxShadow = '0 6px 18px rgba(0,0,0,0.35) inset';
+        // apply color to preview
+        applyPreviewColor();
+      });
+    });
+
+    function applyPreviewColor(){
+      const el = countdownDisplay;
+      switch(selectedColor){
+        case 'green': el.style.color = '#3ccf8e'; break;
+        case 'blue':  el.style.color = '#4da6ff'; break;
+        case 'yellow':el.style.color = '#ffd24d'; break;
+        default: el.style.color = '#ffffff'; break;
+      }
+    }
+    applyPreviewColor();
+
+    // build target utc millis from date/time and tz offset
+    function computeTargetMillis() {
+      const dateVal = dateInput.value;
+      const timeVal = timeInput.value || '00:00';
+      const tzOffset = parseInt(tzSelect.value || '0', 10); // hours
+      if(!dateVal) return null;
+      // parse date/time parts
+      const [y, m, d] = dateVal.split('-').map(Number);
+      const [hh, mm] = timeVal.split(':').map(Number);
+      // The user-specified local time in chosen timezone corresponds to UTC = local time - tzOffset
+      // Create UTC milliseconds for that moment:
+      const utcMillis = Date.UTC(y, m-1, d, hh - tzOffset, mm, 0, 0);
+      return utcMillis;
+    }
+
+    // update preview date text and countdown
+    let previewTarget = null;
+    function updatePreview(){
+      const utcMillis = computeTargetMillis();
+      if(!utcMillis) {
+        previewDate.textContent = 'End at: —';
+        countdownDisplay.textContent = '--:--:--:--';
+        return;
+      }
+      previewTarget = new Date(utcMillis);
+      previewDate.textContent = `End at (UTC): ${previewTarget.toISOString().replace('T',' ').split('.')[0]}Z`;
+      updateCountdownOnce();
+    }
+
+    function formatRemaining(ms){
+      if(ms <= 0) return '00:00:00:00';
+      const s = Math.floor(ms / 1000);
+      const days = Math.floor(s / 86400); 
+      const hrs = Math.floor((s % 86400) / 3600);
+      const mins = Math.floor((s % 3600) / 60);
+      const secs = s % 60;
+      return `${String(days).padStart(2,'0')}:${String(hrs).padStart(2,'0')}:${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+    }
+
+    function updateCountdownOnce(){
+      if(!previewTarget) { countdownDisplay.textContent = '--:--:--:--'; return; }
+      const now = Date.now();
+      const remain = previewTarget.getTime() - now;
+      countdownDisplay.textContent = formatRemaining(remain);
+    }
+
+    // update every second
+    setInterval(()=> {
+      updatePreview();
+      applyPreviewColor();
+    }, 1000);
+
+    // inputs change handlers
+    [dateInput, timeInput, tzSelect].forEach(el => el.addEventListener('input', updatePreview));
+    nameInput.addEventListener('input', ()=>{ liveName.textContent = nameInput.value || '—'; });
+
+    // ensure user is authenticated and then enable create
+    let currentUser = null;
+    onAuthStateChanged(auth, (user) => {
+      if(!user) {
+        // redirect to login if not authenticated
+        location.href = '/login/index.html';
+        return;
+      }
+      currentUser = user;
+    });
+
+    // helper: sanitize doc id (avoid slashes)
+    function makeDocIdFromName(name){
+      // basic sanitize: trim, replace spaces with '-', remove slashes, limit length
+      return name.trim().replace(/\s+/g, '-').replace(/[\/\\#?]/g,'').slice(0, 80);
+    }
+
+    // helper: check existing doc and add suffix if necessary
+    async function chooseUniqueDocId(baseId){
+      let id = baseId;
+      let i = 0;
+      while(true){
+        const snap = await getDoc(doc(db, 'countdowns', id));
+        if(!snap.exists()) return id;
+        i++;
+        id = `${baseId}_${i}`;
+        if(i>1000) throw new Error('Too many collisions, choose another name');
+      }
+    }
+
+    // create button click
+    createBtn.addEventListener('click', async () => {
+      const name = nameInput.value.trim();
+      if(!name) return alert('Enter a name for the countdown.');
+      const utcMillis = computeTargetMillis();
+      if(!utcMillis) return alert('Choose end date (and optionally time and timezone).');
+      if(utcMillis <= Date.now()) return alert('End date must be in the future.');
+
+      // prepare doc id
+      const baseId = makeDocIdFromName(name);
+      if(!baseId) return alert('Invalid name.');
+      createBtn.disabled = true;
+      createBtn.textContent = 'Creating...';
+
+      try {
+        const uniqueId = await chooseUniqueDocId(baseId);
+        const payload = {
+          name,
+          ownerUid: currentUser ? currentUser.uid : null,
+          endAt: new Date(utcMillis).toISOString(),
+          timezoneOffset: parseInt(tzSelect.value || '0', 10),
+          color: selectedColor,
+          type: 'countdown',
+          createdAt: serverTimestamp()
+        };
+        // create document with id = uniqueId
+        await setDoc(doc(db, 'countdowns', uniqueId), payload);
+        // redirect to countdown page
+        location.href = `/home/dashboard/countdown.html?name=${encodeURIComponent(uniqueId)}`;
+      } catch (err) {
+        alert('Failed to create countdown: ' + (err.message || err));
+        createBtn.disabled = false;
+        createBtn.textContent = 'Create Countdown and redirect to your item';
+      }
+    });
+
+    // accessibility: set default date/time to tomorrow 12:00
+    (function setDefaults(){
+      const now = new Date();
+      const tomorrow = new Date(now.getTime() + 24*3600*1000);
+      const yyyy = tomorrow.getFullYear();
+      const mm = String(tomorrow.getMonth()+1).padStart(2,'0');
+      const dd = String(tomorrow.getDate()).padStart(2,'0');
+      dateInput.value = `${yyyy}-${mm}-${dd}`;
+      timeInput.value = '12:00';
+      updatePreview();
+    })();
+  </script>
+</body>
+  </html>
