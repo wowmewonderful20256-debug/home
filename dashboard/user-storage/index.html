@@ -7,7 +7,7 @@
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
 <style>
-  /* TimeSphere consistent styling */
+  /* consistent TimeSphere styling */
   :root{--card-bg: rgba(255,255,255,0.06); --card-hover: rgba(255,255,255,0.12);}
   body { margin:0; font-family:'Poppins',sans-serif; background: linear-gradient(135deg,#5d54a4,#7c78b8); color:#fff; overflow-x:hidden; }
   header { display:flex; justify-content:space-between; align-items:center; padding:1rem 1.5rem; background: rgba(255,255,255,0.08); backdrop-filter: blur(8px); position:fixed; width:100%; top:0; z-index:10; }
@@ -58,6 +58,8 @@
 
   .empty { text-align:center; padding:18px; color: rgba(255,255,255,0.8); }
 
+  /* small helpers */
+  .small { font-size:0.85rem; color:rgba(255,255,255,0.8); }
 </style>
 </head>
 <body>
@@ -93,7 +95,7 @@
       </div>
     </div>
 
-    <div class="card grid">
+    <div class="card grid" aria-live="polite">
       <div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
           <h2 style="margin:0">All Your Creations</h2>
@@ -105,7 +107,7 @@
         </div>
       </div>
 
-      <aside class="side">
+      <aside class="side" aria-label="Largest creations">
         <div>
           <h3 style="margin:0">Largest Your Creations</h3>
           <div class="muted" style="margin-top:6px">Top 5 by estimated used space</div>
@@ -118,11 +120,21 @@
   </main>
 
 <script type="module">
+/* Full working script for user-storage page
+   - reads storage/UID.used (creates doc if missing)
+   - fetches creations from countdowns, clocks, current_times, group
+   - for groups calculates extra size from post_group documents where field group == groupId
+   - exposes window.reserveStorage / canCreateWithoutReserve / releaseStorage for Create pages
+*/
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
-import { getFirestore, doc, getDoc, collection, getDocs, query, where, runTransaction, setDoc } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
+import {
+  getFirestore, doc, getDoc, collection, getDocs, query, where,
+  runTransaction, setDoc
+} from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
 
-// Firebase config (same)
+// Firebase config — use your project's config
 const firebaseConfig = {
   apiKey: "AIzaSyBiGzil9wA3CXZWxWjHsn7iKPkiYQozQW8",
   authDomain: "timesphere-9f7e0.firebaseapp.com",
@@ -131,11 +143,31 @@ const firebaseConfig = {
   messagingSenderId: "94629610195",
   appId: "1:94629610195:web:a037e5c5aa0c5ba7e50a26"
 };
+
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// helper format
+// constants for size estimation (MB)
+const SIZE_COUNTDOWN = 0.35;   // 0.2-0.5 midpoint
+const SIZE_CLOCK = 4.8;       // 2.6-7 midpoint
+const SIZE_TIME = 1.25;       // 1.1-1.4 midpoint
+const GROUP_BASE = 5.0;       // base MB for group
+const MB_PER_CHAR_IN_POST = 0.01; // 10 chars -> 0.1MB => 0.01MB/char
+const STORAGE_LIMIT_MB = 250.0;
+
+// UI refs
+const helloText = document.getElementById('helloText');
+const usedText = document.getElementById('usedText');
+const percentText = document.getElementById('percentText');
+const progressFill = document.getElementById('progressFill');
+const creationsList = document.getElementById('creationsList');
+const largestList = document.getElementById('largestList');
+const totalCountEl = document.getElementById('totalCount');
+const loadingLeft = document.getElementById('loadingLeft');
+const loadingRight = document.getElementById('loadingRight');
+
+// small formatter
 const fmt = n => Number(n).toFixed(2);
 
 // header clock (Europe/London)
@@ -161,29 +193,15 @@ overlay.addEventListener('click', ()=>{ sideMenu.classList.remove('open'); overl
 // logout
 document.getElementById('logoutBtn').addEventListener('click', ()=>{ auth.signOut?.(); window.location.href='/login/index.html'; });
 
-// estimated sizes constants (MB)
-const SIZE_COUNTDOWN = 0.35;   // 0.2-0.5 -> midpoint
-const SIZE_CLOCK = 4.8;       // 2.6-7 -> midpoint
-const SIZE_TIME = 1.25;       // 1.1-1.4 -> midpoint
-const GROUP_BASE = 5.0;       // base MB for group
-const MB_PER_CHAR_IN_POST = 0.01; // 10 chars -> 0.1MB => 0.01MB/char
-const STORAGE_LIMIT_MB = 250.0;
+/*
+ Storage helpers (use in Create pages):
+  - window.reserveStorage(amountMB) => returns true if reserved (and updates storage/UID.used), false if not enough space
+  - window.canCreateWithoutReserve(amountMB) => boolean (no write)
+  - window.releaseStorage(amountMB) => decrease used by amountMB (transactional)
+  - window.storageLimitMB => constant 250
+*/
 
-// UI elements
-const helloText = document.getElementById('helloText');
-const usedText = document.getElementById('usedText');
-const percentText = document.getElementById('percentText');
-const progressFill = document.getElementById('progressFill');
-const creationsList = document.getElementById('creationsList');
-const largestList = document.getElementById('largestList');
-const totalCountEl = document.getElementById('totalCount');
-const loadingLeft = document.getElementById('loadingLeft');
-const loadingRight = document.getElementById('loadingRight');
-
-// STORAGE UTILITIES (exported on window so Create pages can call them)
-/**
- * Atomically ensure storage doc exists and return usedMB (number).
- */
+// ensure storage doc exists and return used MB
 async function ensureStorageDoc(uid){
   const storageRef = doc(db,'storage', uid);
   return await runTransaction(db, async (tx) => {
@@ -199,11 +217,7 @@ async function ensureStorageDoc(uid){
   });
 }
 
-/**
- * Try to reserve amountMB (number) for current user.
- * Returns true if reservation succeeded (used increased), false if not enough space.
- * Uses transaction to avoid races.
- */
+// reserve amountMB atomically for current authenticated user
 async function reserveStorageForCurrentUser(amountMB){
   const user = auth.currentUser;
   if(!user) throw new Error('Not authenticated');
@@ -215,7 +229,6 @@ async function reserveStorageForCurrentUser(amountMB){
       const snap = await tx.get(storageRef);
       let used = 0;
       if(!snap.exists()){
-        // create doc with used = 0
         tx.set(storageRef, { used: 0 });
         used = 0;
       } else {
@@ -225,7 +238,6 @@ async function reserveStorageForCurrentUser(amountMB){
 
       const newUsed = Number((used + Number(amountMB)).toFixed(4));
       if(newUsed > STORAGE_LIMIT_MB) {
-        // do not write, indicate failure
         return { ok:false, used };
       }
       tx.update(storageRef, { used: newUsed });
@@ -239,10 +251,7 @@ async function reserveStorageForCurrentUser(amountMB){
   }
 }
 
-/**
- * Check if there is enough space (without reserving).
- * Returns boolean.
- */
+// simple check without writing
 async function canCreateWithoutReserve(amountMB){
   const user = auth.currentUser;
   if(!user) throw new Error('Not authenticated');
@@ -250,18 +259,15 @@ async function canCreateWithoutReserve(amountMB){
   const storageRef = doc(db,'storage', uid);
   const snap = await getDoc(storageRef);
   let used = 0;
-  if(!snap.exists()) {
-    used = 0;
-  } else {
+  if(!snap.exists()) used = 0;
+  else {
     const d = snap.data();
     used = typeof d.used === 'number' ? d.used : (typeof d.used === 'string' ? parseFloat((d.used.match(/[\d.]+/)||[0])[0]) : 0);
   }
   return (used + Number(amountMB)) <= STORAGE_LIMIT_MB;
 }
 
-/**
- * Release previously reserved space (subtract amountMB). Uses transaction.
- */
+// release reserved space
 async function releaseStorageForCurrentUser(amountMB){
   const user = auth.currentUser;
   if(!user) throw new Error('Not authenticated');
@@ -282,61 +288,64 @@ async function releaseStorageForCurrentUser(amountMB){
   });
 }
 
-// Expose helpers for other pages (Create pages can call these)
+// expose helpers
 window.reserveStorage = reserveStorageForCurrentUser;
 window.canCreateWithoutReserve = canCreateWithoutReserve;
 window.releaseStorage = releaseStorageForCurrentUser;
 window.storageLimitMB = STORAGE_LIMIT_MB;
 
-// MAIN: load UI & compute sizes
+// MAIN UI logic
 onAuthStateChanged(auth, async (user) => {
   if(!user){ window.location.href = '/login/index.html'; return; }
   const uid = user.uid;
   helloText.textContent = `Hello, ${uid}`;
 
-  // ensure storage doc exists and read used
+  // ensure storage doc exists and show used
   try {
-    const usedMB = await ensureStorageDoc(uid);
-    usedText.textContent = `${fmt(usedMB)} MB / ${fmt(STORAGE_LIMIT_MB)} MB`;
-    const pct = Math.min(100, (usedMB / STORAGE_LIMIT_MB) * 100);
+    const used = await ensureStorageDoc(uid);
+    usedText.textContent = `${fmt(used)} MB / ${fmt(STORAGE_LIMIT_MB)} MB`;
+    const pct = Math.min(100, (used / STORAGE_LIMIT_MB) * 100);
     percentText.textContent = `${fmt(pct)}%`;
     progressFill.style.width = `${pct}%`;
   } catch(err){
     console.error('ensureStorageDoc error', err);
+    usedText.textContent = `0 MB / ${fmt(STORAGE_LIMIT_MB)} MB`;
+    percentText.textContent = `0%`;
+    progressFill.style.width = `0%`;
   }
 
-  // fetch creations and estimate sizes (as before)
+  // collections to fetch
   const collections = [
-    { key:'countdowns', type:'Countdown', icon:'hourglass_bottom', urlPrefix:'/home/dashboard/countdown.html?name=' },
-    { key:'clocks', type:'Clock', icon:'schedule', urlPrefix:'/home/dashboard/clock.html?id=' },
-    { key:'current_times', type:'Time', icon:'access_time', urlPrefix:'/home/dashboard/time.html?id=' },
-    { key:'group', type:'Group', icon:'groups', urlPrefix:'/home/dashboard/groups/group.html?name=' }
+    { key:'countdowns', type:'Countdown', icon:'hourglass_bottom', size:SIZE_COUNTDOWN, urlPrefix:'/home/dashboard/countdown.html?name=' },
+    { key:'clocks', type:'Clock', icon:'schedule', size:SIZE_CLOCK, urlPrefix:'/home/dashboard/clock.html?id=' },
+    { key:'current_times', type:'Time', icon:'access_time', size:SIZE_TIME, urlPrefix:'/home/dashboard/time.html?id=' },
+    { key:'group', type:'Group', icon:'groups', size:GROUP_BASE, urlPrefix:'/home/dashboard/groups/group.html?name=' }
   ];
 
   const items = [];
 
-  const pushItem = (id, name, type, estMB, icon, url) => items.push({ id, name, type, estMB, icon, url });
-
+  // fetch for each collection
   for(const col of collections){
     try {
       const q = query(collection(db, col.key), where('ownerUid','==', uid));
       const snap = await getDocs(q);
+
+      // if there are documents, iterate; if none, skip but groups will be empty too (handled)
       if(!snap.empty){
         for(const docSnap of snap.docs){
           const data = docSnap.data();
-          const docId = docSnap.id;
-          const itemName = data.name || docId;
-          if(col.key === 'countdowns'){
-            pushItem(docId, itemName, col.type, SIZE_COUNTDOWN, col.icon, col.urlPrefix + encodeURIComponent(docId));
-          } else if(col.key === 'clocks'){
-            pushItem(docId, itemName, col.type, SIZE_CLOCK, col.icon, col.urlPrefix + encodeURIComponent(docId));
-          } else if(col.key === 'current_times'){
-            pushItem(docId, itemName, col.type, SIZE_TIME, col.icon, col.urlPrefix + encodeURIComponent(docId));
-          } else if(col.key === 'group'){
+          const id = docSnap.id;
+          const name = data.name || id;
+          if(col.key !== 'group'){
+            // countdowns, clocks, times: straightforward
+            items.push({
+              id, name, type: col.type, estMB: col.size, icon: col.icon, url: col.urlPrefix + encodeURIComponent(id)
+            });
+          } else {
+            // group: base + posts size
             let groupSize = GROUP_BASE;
-            // fetch posts for this group (post_group where group == docId)
             try {
-              const postsQ = query(collection(db, 'post_group'), where('group','==', docId));
+              const postsQ = query(collection(db, 'post_group'), where('group','==', id));
               const postsSnap = await getDocs(postsQ);
               if(!postsSnap.empty){
                 postsSnap.forEach(p => {
@@ -346,9 +355,11 @@ onAuthStateChanged(auth, async (user) => {
                 });
               }
             } catch(err){
-              console.error('Error fetching posts for group', docId, err);
+              console.error('Error fetching posts for group', id, err);
             }
-            pushItem(docId, itemName, col.type, groupSize, col.icon, col.urlPrefix + encodeURIComponent(docId));
+            items.push({
+              id, name, type: col.type, estMB: Number(groupSize.toFixed(4)), icon: col.icon, url: col.urlPrefix + encodeURIComponent(id)
+            });
           }
         }
       }
@@ -357,10 +368,11 @@ onAuthStateChanged(auth, async (user) => {
     }
   }
 
-  // show left list
+  // remove loading placeholders
   if (loadingLeft) loadingLeft.remove();
   if (loadingRight) loadingRight.remove();
 
+  // render list
   if(items.length === 0){
     creationsList.innerHTML = `<div class="empty">You don't have any creations yet.</div>`;
     totalCountEl.textContent = '0 items';
@@ -409,27 +421,8 @@ onAuthStateChanged(auth, async (user) => {
     });
   }
 
-}); // onAuthStateChanged end
-
-/**
- * How to use these helpers from Create pages:
- *
- * // example: before creating an item that needs `sizeMB`
- * const ok = await window.reserveStorage(sizeMB);
- * if (!ok) {
- *   alert('Not enough storage. Free some space or upgrade.');
- *   return; // prevent creation
- * }
- * // proceed to create document / storage usage
- * // if creation fails, call:
- * // await window.releaseStorage(sizeMB);
- *
- * // or just check without reserving:
- * const can = await window.canCreateWithoutReserve(sizeMB);
- * if (!can) { alert('Not enough space'); }
- *
- */
+}); // end onAuthStateChanged
 
 </script>
 </body>
-  </html>
+</html>
