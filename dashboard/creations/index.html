@@ -103,13 +103,10 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
-import {
-  getFirestore, collection, getDocs, query, where,
-  doc, getDoc, setDoc, updateDoc
-} from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
 
-// Firebase config (twój)
+// Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyBiGzil9wA3CXZWxWjHsn7iKPkiYQozQW8",
   authDomain: "timesphere-9f7e0.firebaseapp.com",
@@ -122,175 +119,59 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// Header clock Europe/London (zostawione)
+// Header clock Europe/London
 function updateHeaderClock() {
   const now = new Date();
-  const options = {
-    hour12: false,
-    hour: '2-digit', minute: '2-digit', second: '2-digit',
-    timeZone: 'Europe/London'
-  };
-  document.getElementById('clock').textContent =
-    new Intl.DateTimeFormat('en-GB', options).format(now);
+  const options = { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Europe/London' };
+  document.getElementById('clock').textContent = new Intl.DateTimeFormat('en-GB', options).format(now);
 }
-setInterval(updateHeaderClock, 1000);
+setInterval(updateHeaderClock,1000);
 updateHeaderClock();
 
-// Menu toggle (zachowujemy)
+// Menu toggle
 const sideMenu = document.getElementById('sideMenu');
 const overlay = document.getElementById('menuOverlay');
-document.getElementById('menuToggle').addEventListener('click', () => {
-  sideMenu.classList.add('open'); overlay.classList.add('show');
-});
-overlay.addEventListener('click', () => {
-  sideMenu.classList.remove('open'); overlay.classList.remove('show');
-});
+document.getElementById('menuToggle').addEventListener('click', ()=>{ sideMenu.classList.add('open'); overlay.classList.add('show'); });
+overlay.addEventListener('click', ()=>{ sideMenu.classList.remove('open'); overlay.classList.remove('show'); });
 
-// Logout (proste przekierowanie)
-document.getElementById('logoutBtn').addEventListener('click', () => {
-  // jeśli chcesz, możesz użyć auth.signOut() tu; ale prosty redirect ok
-  auth.signOut?.();
-  window.location.href = '/login/index.html';
-});
+// Logout
+document.getElementById('logoutBtn').addEventListener('click', ()=>{ location.href='/login/index.html'; });
 
-/*
-  Funkcja licząca estymowane użycie storage dla uid:
-  - countdowns: 0.2-0.5 MB each (wybiera średnią losową)
-  - clocks: 2.6-7 MB each
-  - current_times: 1.1-1.4 MB each
-  - group: base 5 MB + posty (każdy post tekst -> text.length * 0.01 MB)
-  - post_group: (jeśli masz osobną kolekcję post_group, przeszukujemy tam posty po polu group)
-*/
-async function computeEstimatedUsedForUid(uid) {
-  const MB_PER_CHAR_IN_POST = 0.01;
-  let total = 0;
+// Pobieranie dokumentów właściciela
+onAuthStateChanged(auth, async (user)=>{
+  if(!user) { location.href='/login/index.html'; return; }
 
-  // helper: sum docs in col where ownerUid == uid
-  async function sumCollection(colName, perDocSizeMin, perDocSizeMax, isGroup=false) {
-    const q = query(collection(db, colName), where('ownerUid', '==', uid));
-    const snap = await getDocs(q);
-    if (snap.empty) return 0;
-    let s = 0;
-    for (const d of snap.docs) {
-      if (!isGroup) {
-        // losowa wartość w podanym zakresie (średni model)
-        const min = perDocSizeMin, max = perDocSizeMax;
-        const value = (min === max) ? min : (min + (max - min) / 2); // używam średniej żeby wynik był przewidywalny
-        s += value;
-      } else {
-        // group: base + sum post sizes
-        const groupId = d.id;
-        let groupSize = perDocSizeMin; // base
-        // pobierz posty z post_group gdzie group == groupId
-        try {
-          const pq = query(collection(db, 'post_group'), where('group', '==', groupId));
-          const postsSnap = await getDocs(pq);
-          if (!postsSnap.empty) {
-            postsSnap.forEach(pdoc => {
-              const pdata = pdoc.data();
-              const text = pdata.text || '';
-              groupSize += (text.length * MB_PER_CHAR_IN_POST);
-            });
-          }
-        } catch (err) {
-          console.warn('Could not fetch posts for group', groupId, err);
-        }
-        s += groupSize;
-      }
-    }
-    return s;
-  }
-
-  // countdowns
-  total += await sumCollection('countdowns', 0.35, 0.35, false); // używamy średniej 0.35 MB
-  // clocks
-  total += await sumCollection('clocks', 4.8, 4.8, false); // średnio 4.8 MB
-  // current_times
-  total += await sumCollection('current_times', 1.25, 1.25, false); // średnio 1.25 MB
-  // groups (dokumenty w kolekcji 'group')
-  total += await sumCollection('group', 5, 5, true);
-
-  // ogranicz do limitu (250)
-  if (total > 250) total = 250;
-  return Number(total.toFixed(4));
-}
-
-// zapisuje wynik do storage/{uid}.used (nadpisuje)
-async function writeStorageUsed(uid, usedMB) {
-  const storageRef = doc(db, 'storage', uid);
-  const snap = await getDoc(storageRef);
-  if (!snap.exists()) {
-    await setDoc(storageRef, { used: usedMB });
-  } else {
-    await updateDoc(storageRef, { used: usedMB });
-  }
-}
-
-// render list of creations (jak wcześniej)
-async function renderCreationsForUid(uid) {
+  const userUid = user.uid;
   const grid = document.getElementById('creationsGrid');
-  grid.innerHTML = ''; // czyścimy
+
   const collections = [
-    { name: 'Countdown', col: 'countdowns', icon: 'hourglass_bottom', link: '/home/dashboard/countdown.html?name=' },
-    { name: 'Clock', col: 'clocks', icon: 'schedule', link: '/home/dashboard/clock.html?id=' },
-    { name: 'Time', col: 'current_times', icon: 'access_time', link: '/home/dashboard/time.html?id=' },
-    { name: 'Group', col: 'group', icon: 'groups', link: '/home/dashboard/groups/group.html?name=' }
+    {name:'Countdown', col:'countdowns', icon:'hourglass_bottom', link:'/home/dashboard/countdown.html?name='},
+    {name:'Clock', col:'clocks', icon:'schedule', link:'/home/dashboard/clock.html?id='},
+    {name:'Time', col:'current_times', icon:'access_time', link:'/home/dashboard/time.html?id='},
+    {name:'Group', col:'group', icon:'groups', link:'/home/dashboard/groups/group.html?name='}
   ];
 
   let total = 0;
-  for (const it of collections) {
-    try {
-      const q = query(collection(db, it.col), where('ownerUid', '==', uid));
-      const snap = await getDocs(q);
-      snap.forEach(docSnap => {
-        total++;
-        const data = docSnap.data();
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.innerHTML = `<i class="material-icons">${it.icon}</i>
-          <div class="info">
-            <div class="name">${(data && data.name) ? data.name : docSnap.id}</div>
-            <div class="type">${it.name}</div>
-          </div>`;
-        card.addEventListener('click', () => {
-          window.location.href = it.link + encodeURIComponent(docSnap.id);
-        });
-        grid.appendChild(card);
-      });
-    } catch (err) {
-      console.warn('Error reading collection', it.col, err);
-    }
+
+  for(const item of collections){
+    const q = query(collection(db,item.col),where('ownerUid','==',userUid));
+    const docsSnap = await getDocs(q);
+    docsSnap.forEach(docSnap=>{
+      total++;
+      const data = docSnap.data();
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `<i class="material-icons">${item.icon}</i>
+        <div class="info">
+          <div class="name">${data.name || docSnap.id}</div>
+          <div class="type">${item.name}</div>
+        </div>`;
+      card.addEventListener('click', ()=>{ window.location.href = item.link + encodeURIComponent(docSnap.id); });
+      grid.appendChild(card);
+    });
   }
+
   document.getElementById('yourCreationsTitle').textContent = `Your Creations (${total})`;
-}
-
-// główny flow: przy logowaniu renderujemy creations i automatycznie przeliczamy storage
-onAuthStateChanged(auth, async (user) => {
-  if (!user) { window.location.href = '/login/index.html'; return; }
-  const uid = user.uid;
-
-  // od razu wyrenderuj creations
-  await renderCreationsForUid(uid);
-
-  // od razu policz użycie i zapisz do storage
-  try {
-    const used = await computeEstimatedUsedForUid(uid);
-    await writeStorageUsed(uid, used);
-    console.log('Storage auto-updated to', used, 'MB for', uid);
-  } catch (err) {
-    console.error('Error computing/writing storage', err);
-  }
-
-  // okresowo aktualizuj (co 15s)
-  setInterval(async () => {
-    try {
-      const used = await computeEstimatedUsedForUid(uid);
-      await writeStorageUsed(uid, used);
-      console.log('Periodic storage update ->', used, 'MB');
-    } catch (err) {
-      console.error('Periodic storage update failed', err);
-    }
-  }, 15000);
 });
 </script>
 </body>
