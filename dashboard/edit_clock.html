@@ -1,146 +1,213 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Edit Clock</title>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>TimeSphere | Edit Clock</title>
+
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
+
   <style>
+    /* --- layout & theme consistent with TimeSphere --- */
+    :root { --card-bg: rgba(255,255,255,0.08); --card-bg-2: rgba(255,255,255,0.12); }
+
     body {
-      font-family: 'Poppins', sans-serif;
-      background: radial-gradient(circle at top, #0a0f2c, #000);
-      color: white;
       margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg,#5d54a4,#7c78b8);
+      color: #fff;
       overflow-x: hidden;
     }
 
     header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 14px 24px;
-      background: rgba(255, 255, 255, 0.05);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    #clock {
-      font-weight: 600;
-      letter-spacing: 1px;
-    }
-
-    #menuToggle {
-      cursor: pointer;
-      font-size: 22px;
-    }
-
-    .container {
-      max-width: 600px;
-      margin: 60px auto;
-      text-align: center;
-      background: rgba(255, 255, 255, 0.05);
-      padding: 32px;
-      border-radius: 16px;
-      box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
-    }
-
-    h2 {
-      margin-bottom: 20px;
-      font-weight: 600;
-    }
-
-    input, select {
-      width: 90%;
-      padding: 10px;
-      margin: 10px 0;
-      border: none;
-      border-radius: 8px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      padding:1rem 2rem;
       background: rgba(255,255,255,0.1);
-      color: white;
-      font-size: 16px;
+      backdrop-filter: blur(8px);
+      position:fixed;
+      width:100%;
+      top:0;
+      z-index:10;
     }
 
-    button {
-      margin-top: 20px;
-      padding: 12px 24px;
-      border: none;
-      border-radius: 10px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      background: linear-gradient(90deg, #2e8cff, #1ac7ff);
-      color: white;
-      transition: 0.3s;
+    .menu-btn { font-size:2rem; cursor:pointer; transition: transform .3s; }
+    .menu-btn:hover { transform: scale(1.06); }
+
+    .title { font-weight:600; font-size:1.4rem; }
+
+    .right { display:flex; align-items:center; gap:1rem; }
+    .clock, .logout-btn { font-weight:600; }
+    .logout-btn {
+      cursor:pointer;
+      background: rgba(255,255,255,0.15);
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      transition: background .3s;
+    }
+    .logout-btn:hover { background: rgba(255,255,255,0.28); }
+
+    /* side menu */
+    #sideMenu {
+      position: fixed; top:0; left:-260px;
+      width:260px; height:100%;
+      background: rgba(0,0,0,0.32); backdrop-filter: blur(8px);
+      padding-top:4rem; transition:left .35s; z-index:20;
+    }
+    #sideMenu.open { left:0; }
+    #sideMenu a {
+      display:flex; align-items:center; gap:1rem;
+      padding:1rem 1.25rem; color:white; text-decoration:none; transition: background .18s;
+    }
+    #sideMenu a:hover { background: rgba(255,255,255,0.06); }
+
+    #menuOverlay {
+      display:none; position:fixed; inset:0;
+      background: rgba(0,0,0,0.32); z-index:15;
+    }
+    #menuOverlay.show { display:block; }
+
+    main {
+      margin-top: 90px;
+      padding: 2rem;
+      display:flex;
+      justify-content:center;
+      align-items:flex-start;
     }
 
-    button:hover {
-      transform: scale(1.05);
-      box-shadow: 0 0 15px #1ac7ff;
+    .card {
+      width: 100%;
+      max-width: 900px;
+      background: var(--card-bg);
+      border-radius: 18px;
+      padding: 20px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .left {
+      display:flex; flex-direction:column; gap:12px;
+    }
+
+    label { font-weight:600; font-size:0.95rem; margin-bottom:6px; display:block; }
+    input[type="text"], select {
+      width:100%;
+      padding:10px;
+      border-radius:10px;
+      border:none;
+      outline:none;
+      background: rgba(255,255,255,0.06);
+      color: white;
+      font-size:1rem;
+    }
+
+    .muted { color: rgba(255,255,255,0.85); font-size:0.95rem; }
+
+    .right-panel {
+      display:flex; flex-direction:column; gap:12px; align-items:center;
     }
 
     canvas {
-      margin-top: 25px;
-      background: transparent;
-      display: block;
-      margin-left: auto;
-      margin-right: auto;
+      width: 300px;     /* CSS size (responsive) */
+      height: 300px;
       border-radius: 50%;
+      background: transparent;
+      display:block;
+    }
+
+    .save-btn {
+      width:100%;
+      padding:12px;
+      border-radius:10px;
+      border:none;
+      cursor:pointer;
+      font-weight:700;
+      background: linear-gradient(90deg,#ff8a00,#e52e71);
+      color:#000;
+      margin-top:6px;
+    }
+    .save-btn:disabled { opacity:0.6; cursor:not-allowed; }
+
+    @media (max-width: 920px) {
+      .card { grid-template-columns: 1fr; }
+      canvas { width: 240px; height:240px; }
     }
   </style>
 </head>
 <body>
-
   <header>
-    <div id="menuToggle">☰</div>
-    <div id="clock"></div>
+    <span class="menu-btn material-icons" id="menuToggle">menu</span>
+    <h1 class="title">TimeSphere</h1>
+    <div class="right">
+      <div class="clock" id="clock">--:--:--</div>
+      <div class="logout-btn" id="logoutBtn">Logout</div>
+    </div>
   </header>
 
-  <div class="container">
-    <h2>Edit Your Clock</h2>
-    <input id="clockNameInput" placeholder="Clock name" type="text">
-    <select id="timeZoneSelect">
-      <option value="0">UTC+0</option>
-      <option value="1">UTC+1</option>
-      <option value="2">UTC+2</option>
-      <option value="3">UTC+3</option>
-      <option value="4">UTC+4</option>
-      <option value="5">UTC+5</option>
-      <option value="6">UTC+6</option>
-      <option value="7">UTC+7</option>
-      <option value="8">UTC+8</option>
-      <option value="9">UTC+9</option>
-      <option value="10">UTC+10</option>
-      <option value="11">UTC+11</option>
-      <option value="12">UTC+12</option>
-      <option value="-1">UTC-1</option>
-      <option value="-2">UTC-2</option>
-      <option value="-3">UTC-3</option>
-      <option value="-4">UTC-4</option>
-      <option value="-5">UTC-5</option>
-      <option value="-6">UTC-6</option>
-      <option value="-7">UTC-7</option>
-      <option value="-8">UTC-8</option>
-      <option value="-9">UTC-9</option>
-      <option value="-10">UTC-10</option>
-      <option value="-11">UTC-11</option>
-      <option value="-12">UTC-12</option>
-    </select>
+  <nav id="sideMenu">
+    <a href="/home/dashboard/"><span class="material-icons">home</span>Dashboard</a>
+    <a href="/home/dashboard/users/"><span class="material-icons">group</span>Users</a>
+    <a href="/home/dashboard/groups/"><span class="material-icons">groups</span>Groups</a>
+    <a href="/home/dashboard/create/"><span class="material-icons">add_circle</span>Create</a>
+    <a href="/home/dashboard/user-storage/"><span class="material-icons">storage</span>Storage</a>
+    <a href="/home/dashboard/coins/"><span class="material-icons">paid</span>Coins</a>
+    <a href="/home/dashboard/quests-and-rewards/"><span class="material-icons">emoji_events</span>Quests</a>
+    <a href="/home/dashboard/settings/"><span class="material-icons">settings</span>Settings</a>
+  </nav>
+  <div id="menuOverlay"></div>
 
-    <select id="themeSelect">
-      <option value="light">Light</option>
-      <option value="dark">Dark</option>
-    </select>
+  <main>
+    <div class="card" role="region" aria-label="Edit Clock">
+      <div class="left">
+        <h2 style="margin:0 0 6px 0;">Edit Clock</h2>
+        <div>
+          <label for="clockName">Clock Name</label>
+          <input id="clockName" type="text" placeholder="My Clock" />
+        </div>
 
-    <h3>Clock Preview</h3>
-    <canvas id="clockPreview" width="250" height="250"></canvas>
+        <div>
+          <label for="tzSelect">Timezone (UTC+14 … UTC-12)</label>
+          <select id="tzSelect"></select>
+        </div>
 
-    <button id="saveBtn">Save changes and redirect to clock page</button>
-  </div>
+        <div>
+          <label for="themeSelect">Clock Theme</label>
+          <select id="themeSelect">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+          </select>
+        </div>
+
+        <div>
+          <label>Preview name</label>
+          <div id="liveName" class="muted">—</div>
+        </div>
+
+        <div>
+          <button id="saveBtn" class="save-btn">Save changes and redirect to clock page</button>
+        </div>
+      </div>
+
+      <div class="right-panel">
+        <div class="muted">Preview</div>
+        <!-- canvas actual pixel size will be set in JS to avoid stretching -->
+        <canvas id="previewCanvas" width="600" height="600" aria-label="Clock preview"></canvas>
+        <div class="muted" id="previewInfo">Time zone preview: —</div>
+      </div>
+    </div>
+  </main>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
     import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
 
+    // firebase config (same as other pages)
     const firebaseConfig = {
       apiKey: "AIzaSyBiGzil9wA3CXZWxWjHsn7iKPkiYQozQW8",
       authDomain: "timesphere-9f7e0.firebaseapp.com",
@@ -154,142 +221,233 @@
     const db = getFirestore(app);
     const auth = getAuth(app);
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const clockId = urlParams.get("id");
-
-    const headerClock = document.getElementById('clock');
+    // header clock -> Europe/London
+    const headerClockEl = document.getElementById('clock');
     function updateHeaderClock() {
       const now = new Date();
-      headerClock.textContent = now.toLocaleTimeString('en-GB', { hour12: false });
+      const options = { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Europe/London' };
+      headerClockEl.textContent = new Intl.DateTimeFormat('en-GB', options).format(now);
     }
-    setInterval(updateHeaderClock, 1000);
     updateHeaderClock();
+    setInterval(updateHeaderClock, 1000);
 
-    const clockNameInput = document.getElementById('clockNameInput');
-    const timeZoneSelect = document.getElementById('timeZoneSelect');
+    // menu toggle
+    const menuToggle = document.getElementById('menuToggle');
+    const sideMenu = document.getElementById('sideMenu');
+    const menuOverlay = document.getElementById('menuOverlay');
+    menuToggle.addEventListener('click', ()=>{ sideMenu.classList.add('open'); menuOverlay.classList.add('show'); });
+    menuOverlay.addEventListener('click', ()=>{ sideMenu.classList.remove('open'); menuOverlay.classList.remove('show'); });
+    document.addEventListener('keydown', (e)=>{ if(e.key==='Escape'){ sideMenu.classList.remove('open'); menuOverlay.classList.remove('show'); }});
+    document.getElementById('logoutBtn').addEventListener('click', ()=>{ location.href = '/login/index.html'; });
+
+    // DOM refs
+    const tzSelect = document.getElementById('tzSelect');
     const themeSelect = document.getElementById('themeSelect');
+    const clockNameInput = document.getElementById('clockName');
+    const liveName = document.getElementById('liveName');
     const saveBtn = document.getElementById('saveBtn');
+    const previewInfo = document.getElementById('previewInfo');
 
-    const canvas = document.getElementById('clockPreview');
+    // clock id from url
+    const params = new URLSearchParams(window.location.search);
+    const clockId = params.get('id');
+
+    // populate tz options UTC+14 ... UTC-12
+    (function fillTZ(){
+      const start = 14;
+      const end = -12;
+      for(let tz = start; tz >= end; tz--){
+        const opt = document.createElement('option');
+        opt.value = String(tz);
+        const sign = tz >= 0 ? '+' : '';
+        opt.textContent = `UTC${sign}${tz}`;
+        tzSelect.appendChild(opt);
+      }
+      // default to 0
+      tzSelect.value = '0';
+    })();
+
+    // live preview name
+    clockNameInput.addEventListener('input', ()=>{ liveName.textContent = clockNameInput.value.trim() || '—'; });
+
+    // Canvas preview setup (avoid stretch, use DPR)
+    const canvas = document.getElementById('previewCanvas');
     const ctx = canvas.getContext('2d');
-    const radius = canvas.height / 2;
-    ctx.translate(radius, radius);
 
-    let tzOffset = 0;
+    function resizeCanvasToDisplaySize() {
+      // get CSS size
+      const cssRect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      const w = Math.round(cssRect.width * dpr);
+      const h = Math.round(cssRect.height * dpr);
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w;
+        canvas.height = h;
+      }
+      ctx.setTransform(dpr,0,0,dpr,0,0); // so drawing uses CSS pixels
+    }
+    // initial resize
+    resizeCanvasToDisplaySize();
+    // also on resize
+    window.addEventListener('resize', resizeCanvasToDisplaySize);
 
-    function drawFace(ctx, radius) {
+    function drawFace(r, theme){
       ctx.beginPath();
-      ctx.arc(0, 0, radius, 0, 2 * Math.PI);
-      ctx.fillStyle = themeSelect.value === 'light' ? '#fff' : '#000';
+      ctx.arc(0,0,r,0,Math.PI*2);
+      ctx.fillStyle = theme==='light' ? '#ffffff' : '#0b0b0b';
       ctx.fill();
-      ctx.strokeStyle = '#fff';
-      ctx.lineWidth = radius * 0.05;
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = Math.max(2, r * 0.04);
       ctx.stroke();
       ctx.beginPath();
-      ctx.arc(0, 0, radius * 0.05, 0, 2 * Math.PI);
-      ctx.fillStyle = '#fff';
+      ctx.arc(0,0,r*0.05,0,Math.PI*2);
+      ctx.fillStyle = '#ffffff';
       ctx.fill();
     }
 
-    function drawNumbers(ctx, radius) {
-      ctx.font = radius * 0.15 + "px Poppins";
-      ctx.textBaseline = "middle";
-      ctx.textAlign = "center";
-      for (let num = 1; num <= 12; num++) {
+    function drawNumbers(r, theme){
+      ctx.font = `${Math.max(12, r*0.12)}px Poppins, sans-serif`;
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'center';
+      for(let num=1; num<=12; num++){
         const ang = num * Math.PI / 6;
+        ctx.save();
         ctx.rotate(ang);
-        ctx.translate(0, -radius * 0.85);
+        ctx.translate(0, -r*0.82);
         ctx.rotate(-ang);
-        ctx.fillStyle = themeSelect.value === 'light' ? '#000' : '#fff';
-        ctx.fillText(num.toString(), 0, 0);
-        ctx.rotate(ang);
-        ctx.translate(0, radius * 0.85);
-        ctx.rotate(-ang);
+        ctx.fillStyle = theme==='light' ? '#000' : '#fff';
+        ctx.fillText(String(num), 0, 0);
+        ctx.restore();
       }
     }
 
-    function drawTime(ctx, radius, now) {
-      let hour = now.getUTCHours();
-      let minute = now.getUTCMinutes();
-      let second = now.getUTCSeconds();
-      hour = hour % 12;
-      hour = (hour * Math.PI / 6) + (minute * Math.PI / (6 * 60)) + (second * Math.PI / (360 * 60));
-      drawHand(ctx, hour, radius * 0.5, radius * 0.07);
-      let minuteAngle = (minute * Math.PI / 30) + (second * Math.PI / (30 * 60));
-      drawHand(ctx, minuteAngle, radius * 0.8, radius * 0.07);
-      let secondAngle = (second * Math.PI / 30);
-      drawHand(ctx, secondAngle, radius * 0.9, radius * 0.02, 'red');
-    }
-
-    function drawHand(ctx, pos, length, width, color = '#fff') {
+    function drawHand(angle, length, width, color='#fff'){
       ctx.beginPath();
-      ctx.lineWidth = width;
-      ctx.lineCap = "round";
+      ctx.lineWidth = Math.max(1, width);
+      ctx.lineCap = 'round';
       ctx.strokeStyle = color;
-      ctx.moveTo(0, 0);
-      ctx.rotate(pos);
+      ctx.moveTo(0,0);
+      ctx.rotate(angle);
       ctx.lineTo(0, -length);
       ctx.stroke();
-      ctx.rotate(-pos);
+      ctx.rotate(-angle);
     }
 
-    function drawClock() {
-      ctx.clearRect(-radius, -radius, canvas.width, canvas.height);
-      const now = new Date(Date.now() + tzOffset * 3600 * 1000);
-      drawFace(ctx, radius);
-      drawNumbers(ctx, radius);
-      drawTime(ctx, radius, now);
-      requestAnimationFrame(drawClock);
+    function drawTimeNow(r, tzOffsetHours, theme){
+      // center coordinates
+      const cssW = canvas.clientWidth;
+      const cssH = canvas.clientHeight;
+      ctx.clearRect(-cssW/2 - 5, -cssH/2 - 5, cssW + 10, cssH + 10);
+      const now = new Date(Date.now() + (tzOffsetHours||0) * 3600 * 1000);
+      // face
+      drawFace(r, theme);
+      drawNumbers(r, theme);
+      // compute angles using UTC parts (we used shifted Date)
+      let h = now.getUTCHours() % 12;
+      let m = now.getUTCMinutes();
+      let s = now.getUTCSeconds();
+      const hourAngle = (h * Math.PI/6) + (m * Math.PI/(6*60)) + (s * Math.PI/(360*60));
+      drawHand(hourAngle, r*0.5, r*0.07);
+      const minuteAngle = (m * Math.PI/30) + (s * Math.PI/(30*60));
+      drawHand(minuteAngle, r*0.75, r*0.06);
+      const secondAngle = (s * Math.PI/30);
+      drawHand(secondAngle, r*0.9, r*0.02, '#ff4b4b');
     }
 
-    timeZoneSelect.addEventListener('change', () => {
-      tzOffset = parseInt(timeZoneSelect.value);
-    });
-    themeSelect.addEventListener('change', () => {});
+    // animation loop
+    let animHandle = null;
+    function startPreviewLoop(){
+      if(animHandle) return;
+      function loop(){
+        resizeCanvasToDisplaySize();
+        // set origin to center in CSS pixels
+        ctx.setTransform(window.devicePixelRatio || 1,0,0,window.devicePixelRatio || 1,0,0);
+        const cssW = canvas.clientWidth;
+        const cssH = canvas.clientHeight;
+        ctx.translate(cssW/2, cssH/2);
+        const r = Math.min(cssW, cssH) / 2;
+        drawTimeNow(r, Number(tzSelect.value || 0), themeSelect.value || 'dark');
+        // reset transform for next frame
+        ctx.setTransform(1,0,0,1,0,0);
+        animHandle = requestAnimationFrame(loop);
+      }
+      animHandle = requestAnimationFrame(loop);
+    }
+    startPreviewLoop();
 
-    drawClock();
-
-    // Load clock data
+    // auth & load existing clock
     onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        location.href = "/login/index.html";
+      if(!user){
+        location.href = '/login/index.html';
         return;
       }
-
-      const docRef = doc(db, "clocks", clockId);
-      const snap = await getDoc(docRef);
-      if (!snap.exists()) {
-        alert("Clock not found!");
-        return;
+      if(!clockId){
+        alert('Clock id missing'); return;
       }
-
-      const data = snap.data();
-      if (data.ownerUid !== user.uid) {
-        alert("You are not the owner of this clock.");
-        location.href = `/home/dashboard/clock.html?id=${clockId}`;
-        return;
+      try {
+        const ref = doc(db, 'clocks', clockId);
+        const snap = await getDoc(ref);
+        if(!snap.exists()){
+          alert('Clock not found'); location.href = '/home/dashboard/'; return;
+        }
+        const data = snap.data();
+        // owner guard
+        if(data.ownerUid !== user.uid){
+          // not owner -> redirect to view
+          alert('Redirecting... Reason: you are not owner of this clock');
+          location.href = `/home/dashboard/clock.html?id=${clockId}`;
+          return;
+        }
+        // populate inputs
+        clockNameInput.value = data.name || '';
+        liveName.textContent = data.name || '—';
+        tzSelect.value = String(data.timeZone ?? '0');
+        themeSelect.value = data.theme || 'dark';
+        previewInfo.textContent = `Time zone preview: UTC${Number(tzSelect.value) >= 0 ? '+'+Number(tzSelect.value) : Number(tzSelect.value)}`;
+      } catch (e) {
+        console.error(e);
+        alert('Failed to load clock: ' + (e.message || e));
       }
-
-      clockNameInput.value = data.name;
-      timeZoneSelect.value = data.timeZone;
-      themeSelect.value = data.theme;
-      tzOffset = parseInt(data.timeZone);
     });
 
-    saveBtn.addEventListener('click', async () => {
+    // update preview info live
+    tzSelect.addEventListener('input', ()=> {
+      previewInfo.textContent = `Time zone preview: UTC${Number(tzSelect.value) >= 0 ? '+'+Number(tzSelect.value) : Number(tzSelect.value)}`;
+    });
+    themeSelect.addEventListener('input', ()=> { /* loop reads themeSelect */ });
+
+    // Save handler
+    saveBtn.addEventListener('click', async ()=>{
       const name = clockNameInput.value.trim();
-      if (!name) {
-        alert("Enter clock name");
-        return;
+      if(!name){ alert('Enter clock name'); return; }
+      try {
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
+        const ref = doc(db, 'clocks', clockId);
+        await updateDoc(ref, {
+          name,
+          timeZone: String(tzSelect.value),
+          theme: String(themeSelect.value)
+        });
+        // redirect to view
+        location.href = `/home/dashboard/clock.html?id=${encodeURIComponent(clockId)}`;
+      } catch (e) {
+        console.error(e);
+        alert('Save failed: ' + (e.message || e));
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save changes and redirect to clock page';
       }
-      const docRef = doc(db, "clocks", clockId);
-      await updateDoc(docRef, {
-        name,
-        timeZone: timeZoneSelect.value,
-        theme: themeSelect.value
-      });
-      window.location.href = `/home/dashboard/clock.html?id=${clockId}`;
+    });
+
+    // accessibility fallback: stop animation on page hide
+    document.addEventListener('visibilitychange', ()=> {
+      if (document.hidden) {
+        if (animHandle) cancelAnimationFrame(animHandle);
+        animHandle = null;
+      } else {
+        startPreviewLoop();
+      }
     });
   </script>
 </body>
-  </html>
+</html>
