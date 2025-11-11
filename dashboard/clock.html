@@ -172,9 +172,10 @@
     const auth = getAuth(app);
 
     // header clock
-    function updateHeaderClock(){
-      const now = new Date();
-      document.getElementById('clock').textContent = now.toLocaleTimeString('en-GB',{hour12:false});
+    function updateHeaderClock() {
+  const now = new Date();
+  const options = { hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit', timeZone:'Europe/London' };
+  document.getElementById('clock').textContent = new Intl.DateTimeFormat('en-GB', options).format(now);
     }
     setInterval(updateHeaderClock,1000); updateHeaderClock();
 
