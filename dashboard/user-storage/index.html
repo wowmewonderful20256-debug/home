@@ -324,7 +324,7 @@ onAuthStateChanged(auth, async (user)=>{
   const items = [];
   for(const col of collections){
     try {
-      const q = query(collection(db, col.key), where('ownerUid','==', uid));
+      const q = query(collection(db, col.key), where('owner','==', uid));
       const snap = await getDocs(q);
       if(!snap.empty){
         for(const docSnap of snap.docs){
