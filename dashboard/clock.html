@@ -1,185 +1,302 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>TimeSphere | Clock View</title>
-<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
-<style>
-body {
-  margin:0;
-  font-family:'Poppins',sans-serif;
-  background: linear-gradient(135deg,#5d54a4,#7c78b8);
-  color:#fff;
-  overflow-x:hidden;
-}
-header {
-  display:flex; justify-content:space-between; align-items:center;
-  padding:1rem 2rem;
-  background: rgba(255,255,255,0.1);
-  backdrop-filter: blur(8px);
-  position:fixed;
-  width:100%; top:0; z-index:10;
-}
-.menu-btn { font-size:2rem; cursor:pointer; transition: transform .3s; }
-.menu-btn:hover { transform:scale(1.06); }
-.title { font-weight:600; font-size:1.4rem; }
-.right { display:flex; align-items:center; gap:1rem; }
-.clock, .logout-btn { font-weight:600; }
-.logout-btn { cursor:pointer; background: rgba(255,255,255,0.15); padding:0.5rem 1rem; border-radius:8px; transition: background .2s; }
-.logout-btn:hover { background: rgba(255,255,255,0.28); }
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>TimeSphere | Clock View</title>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg,#5d54a4,#7c78b8);
+      color: #fff;
+      overflow-x: hidden;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 2rem;
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(8px);
+      position: fixed;
+      width: 100%;
+      top: 0;
+      z-index: 10;
+    }
+    .menu-btn { font-size: 2rem; cursor: pointer; transition: transform .3s; }
+    .menu-btn:hover { transform: scale(1.06); }
+    .title { font-weight: 600; font-size: 1.4rem; }
+    .right { display: flex; align-items: center; gap: 1rem; }
+    .clock, .logout-btn { font-weight: 600; }
+    .logout-btn {
+      cursor: pointer;
+      background: rgba(255,255,255,0.15);
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      transition: background .2s;
+    }
+    .logout-btn:hover { background: rgba(255,255,255,0.28); }
 
-#sideMenu { position:fixed; top:0; left:-260px; width:260px; height:100%; background: rgba(0,0,0,0.32); backdrop-filter: blur(8px); padding-top:4rem; transition:left .35s; z-index:20; }
-#sideMenu.open { left:0; }
-#sideMenu a { display:flex; align-items:center; gap:1rem; padding:1rem 1.25rem; color:white; text-decoration:none; transition: background .18s; }
-#sideMenu a:hover { background: rgba(255,255,255,0.06); }
-#menuOverlay { display:none; position:fixed; inset:0; background: rgba(0,0,0,0.32); z-index:15; }
-#menuOverlay.show { display:block; }
+    #sideMenu {
+      position: fixed;
+      top: 0;
+      left: -260px;
+      width: 260px;
+      height: 100%;
+      background: rgba(0,0,0,0.32);
+      backdrop-filter: blur(8px);
+      padding-top: 4rem;
+      transition: left .35s;
+      z-index: 20;
+    }
+    #sideMenu.open { left: 0; }
+    #sideMenu a {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem 1.25rem;
+      color: white;
+      text-decoration: none;
+      transition: background .18s;
+    }
+    #sideMenu a:hover { background: rgba(255,255,255,0.06); }
+    #menuOverlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.32);
+      z-index: 15;
+    }
+    #menuOverlay.show { display: block; }
 
-main { margin-top:90px; padding:2rem; display:flex; flex-direction:column; gap:1.5rem; align-items:center; }
-.card { width:90%; max-width:450px; background: rgba(255,255,255,0.08); border-radius:18px; padding:20px; box-shadow: 0 8px 30px rgba(0,0,0,0.25); text-align:center; }
+    main {
+      margin-top: 100px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+      text-align: center;
+    }
 
-#clockCanvas { width:250px; height:250px; display:block; margin: 0 auto; }
-.clock-title { font-size:1.5rem; font-weight:700; margin-bottom:5px; }
-.muted { color: rgba(255,255,255,0.7); font-size:0.9rem; margin-bottom:10px; }
-.icon-btn { cursor:pointer; font-size:28px; margin:0 8px; }
-</style>
+    .card {
+      width: 90%;
+      max-width: 450px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 18px;
+      padding: 20px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+    }
+
+    canvas {
+      display: block;
+      margin: 0 auto;
+      background: transparent;
+      border-radius: 50%;
+    }
+
+    .btn-row {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 10px;
+    }
+
+    .material-icons {
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .material-icons:hover {
+      transform: scale(1.1);
+    }
+
+    .muted {
+      color: rgba(255,255,255,0.8);
+      font-size: 0.95rem;
+      margin-top: 4px;
+    }
+  </style>
 </head>
 <body>
-<header>
-  <span class="menu-btn material-icons" id="menuToggle">menu</span>
-  <h1 class="title">TimeSphere</h1>
-  <div class="right">
-    <div class="clock" id="clock">--:--:--</div>
-    <div class="logout-btn" id="logoutBtn">Logout</div>
-  </div>
-</header>
-
-<nav id="sideMenu">
-  <a href="/home/dashboard/"><span class="material-icons">home</span>Dashboard</a>
-  <a href="/home/dashboard/users/"><span class="material-icons">group</span>Users</a>
-  <a href="/home/dashboard/groups/"><span class="material-icons">groups</span>Groups</a>
-  <a href="/home/dashboard/create/"><span class="material-icons">add_circle</span>Create</a>
-  <a href="/home/dashboard/user-storage/"><span class="material-icons">storage</span>Storage</a>
-  <a href="/home/dashboard/coins/"><span class="material-icons">paid</span>Coins</a>
-  <a href="/home/dashboard/quests-and-rewards/"><span class="material-icons">emoji_events</span>Quests</a>
-  <a href="/home/dashboard/settings/"><span class="material-icons">settings</span>Settings</a>
-</nav>
-<div id="menuOverlay"></div>
-
-<main>
-  <div class="card">
-    <div class="clock-title" id="clockTitle">Loading clock...</div>
-    <div class="muted" id="clockInfo">—</div>
-    <canvas id="clockCanvas"></canvas>
-    <div style="margin-top:10px;">
-      <span class="material-icons icon-btn" id="shareBtn" title="Share Clock">share</span>
-      <span class="material-icons icon-btn" id="editBtn" title="Edit Clock" style="display:none;">edit</span>
+  <header>
+    <span class="menu-btn material-icons" id="menuToggle">menu</span>
+    <h1 class="title">TimeSphere</h1>
+    <div class="right">
+      <div class="clock" id="clock">--:--:--</div>
+      <div class="logout-btn" id="logoutBtn">Logout</div>
     </div>
-  </div>
-</main>
+  </header>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
-import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
+  <nav id="sideMenu">
+    <a href="/home/dashboard/"><span class="material-icons">home</span>Dashboard</a>
+    <a href="/home/dashboard/users/"><span class="material-icons">group</span>Users</a>
+    <a href="/home/dashboard/groups/"><span class="material-icons">groups</span>Groups</a>
+    <a href="/home/dashboard/create/"><span class="material-icons">add_circle</span>Create</a>
+    <a href="/home/dashboard/user-storage/"><span class="material-icons">storage</span>Storage</a>
+    <a href="/home/dashboard/coins/"><span class="material-icons">paid</span>Coins</a>
+    <a href="/home/dashboard/quests-and-rewards/"><span class="material-icons">emoji_events</span>Quests</a>
+    <a href="/home/dashboard/settings/"><span class="material-icons">settings</span>Settings</a>
+  </nav>
+  <div id="menuOverlay"></div>
 
-// Firebase init
-const firebaseConfig = {
-  apiKey: "AIzaSyBiGzil9wA3CXZWxWjHsn7iKPkiYQozQW8",
-  authDomain: "timesphere-9f7e0.firebaseapp.com",
-  projectId: "timesphere-9f7e0",
-  storageBucket: "timesphere-9f7e0.firebasestorage.app",
-  messagingSenderId: "94629610195",
-  appId: "1:94629610195:web:a037e5c5aa0c5ba7e50a26"
-};
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
+  <main>
+    <div class="card">
+      <h2 id="clockName">Loading clock...</h2>
+      <div class="muted" id="clockInfo">Timezone: —</div>
+      <div class="btn-row">
+        <span class="material-icons" id="shareBtn" title="Share Clock">share</span>
+        <span class="material-icons" id="editBtn" style="display:none;" title="Edit Clock">edit</span>
+      </div>
+      <canvas id="clockCanvas" width="250" height="250"></canvas>
+    </div>
+  </main>
 
-const $ = id => document.getElementById(id);
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
 
-const headerClock = $('clock');
-function updateHeaderClock(){
-  const now = new Date();
-  headerClock.textContent = now.toLocaleTimeString('en-GB', {hour12:false});
-}
-setInterval(updateHeaderClock,1000);
-updateHeaderClock();
+    const firebaseConfig = {
+      apiKey: "AIzaSyBiGzil9wA3CXZWxWjHsn7iKPkiYQozQW8",
+      authDomain: "timesphere-9f7e0.firebaseapp.com",
+      projectId: "timesphere-9f7e0",
+      storageBucket: "timesphere-9f7e0.firebasestorage.app",
+      messagingSenderId: "94629610195",
+      appId: "1:94629610195:web:a037e5c5aa0c5ba7e50a26"
+    };
 
-// Menu
-const sideMenu = $('sideMenu'), overlay = $('menuOverlay'), menuToggle = $('menuToggle');
-if(menuToggle && sideMenu && overlay){
-  menuToggle.addEventListener('click',()=>{sideMenu.classList.add('open'); overlay.classList.add('show');});
-  overlay.addEventListener('click',()=>{sideMenu.classList.remove('open'); overlay.classList.remove('show');});
-}
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
 
-// Logout
-$('logoutBtn')?.addEventListener('click',()=>{ location.href='/login/index.html'; });
+    // header clock
+    function updateHeaderClock(){
+      const now = new Date();
+      document.getElementById('clock').textContent = now.toLocaleTimeString('en-GB',{hour12:false});
+    }
+    setInterval(updateHeaderClock,1000); updateHeaderClock();
 
-// Get clock ID
-const params = new URLSearchParams(window.location.search);
-const clockId = params.get('id');
-const clockTitle = $('clockTitle'), clockInfo = $('clockInfo'), editBtn = $('editBtn'), shareBtn = $('shareBtn');
-const canvas = $('clockCanvas');
-const ctx = canvas.getContext('2d');
-ctx.translate(canvas.width/2,canvas.height/2);
+    // menu
+    const sideMenu = document.getElementById('sideMenu');
+    const overlay = document.getElementById('menuOverlay');
+    document.getElementById('menuToggle').addEventListener('click', ()=>{ sideMenu.classList.add('open'); overlay.classList.add('show'); });
+    overlay.addEventListener('click', ()=>{ sideMenu.classList.remove('open'); overlay.classList.remove('show'); });
+    document.getElementById('logoutBtn').addEventListener('click', ()=>{ location.href='/login/index.html'; });
 
-let ownerUid=null, theme='dark', tzOffset=0;
+    // clock data
+    const params = new URLSearchParams(window.location.search);
+    const clockId = params.get('id');
+    const clockNameEl = document.getElementById('clockName');
+    const clockInfoEl = document.getElementById('clockInfo');
+    const editBtn = document.getElementById('editBtn');
+    const shareBtn = document.getElementById('shareBtn');
 
-// Draw analog clock
-function drawClock(){
-  ctx.clearRect(-canvas.width/2,-canvas.height/2,canvas.width,canvas.height);
-  const now = new Date(Date.now() + tzOffset*3600*1000);
-  const radius = canvas.width/2;
-  // face
-  ctx.beginPath(); ctx.arc(0,0,radius,0,2*Math.PI); ctx.fillStyle=theme==='light'?'#fff':'#0b0b0b'; ctx.fill();
-  ctx.strokeStyle='#fff'; ctx.lineWidth=radius*0.05; ctx.stroke();
-  ctx.beginPath(); ctx.arc(0,0,radius*0.05,0,2*Math.PI); ctx.fillStyle='#fff'; ctx.fill();
-  // numbers
-  ctx.font=radius*0.15+"px Poppins"; ctx.textBaseline="middle"; ctx.textAlign="center";
-  for(let num=1;num<=12;num++){ const ang=num*Math.PI/6; ctx.rotate(ang); ctx.translate(0,-radius*0.82); ctx.rotate(-ang); ctx.fillStyle=theme==='light'?'#000':'#fff'; ctx.fillText(num,0,0); ctx.rotate(ang); ctx.translate(0,radius*0.82); ctx.rotate(-ang);}
-  // hands
-  let h=now.getUTCHours()%12; let m=now.getUTCMinutes(); let s=now.getUTCSeconds();
-  let hourAngle=(h*Math.PI/6)+(m*Math.PI/(6*60))+(s*Math.PI/(360*60)); drawHand(hourAngle,radius*0.5,radius*0.07);
-  let minAngle=(m*Math.PI/30)+(s*Math.PI/(30*60)); drawHand(minAngle,radius*0.75,radius*0.06);
-  let secAngle=(s*Math.PI/30); drawHand(secAngle,radius*0.9,radius*0.02,'red');
-  requestAnimationFrame(drawClock);
-}
-function drawHand(angle,length,width,color='#fff'){ ctx.beginPath(); ctx.lineWidth=width; ctx.lineCap='round'; ctx.strokeStyle=color; ctx.moveTo(0,0); ctx.rotate(angle); ctx.lineTo(0,-length); ctx.stroke(); ctx.rotate(-angle);}
-drawClock();
+    const canvas = document.getElementById('clockCanvas');
+    const ctx = canvas.getContext('2d');
+    const radius = canvas.width / 2;
+    ctx.translate(radius, radius);
 
-// Load clock from Firestore
-async function loadClock(){
-  if(!clockId){ clockTitle.textContent='Clock not found'; return; }
-  const docRef = doc(db,'clocks',clockId);
-  const snap = await getDoc(docRef);
-  if(!snap.exists()){ clockTitle.textContent='Clock not found'; return; }
-  const data = snap.data();
-  clockTitle.textContent=data.name||clockId;
-  clockInfo.textContent=`TimeZone: UTC${data.timeZone>=0?'+'+data.timeZone:data.timeZone} | Theme: ${data.theme}`;
-  tzOffset = Number(data.timeZone||0);
-  theme = data.theme||'dark';
-  ownerUid = data.ownerUid||null;
+    let tzOffset = 0;
+    let theme = 'dark';
+    let ownerUid = null;
 
-  // show edit only for owner
-  onAuthStateChanged(auth,user=>{
-    if(user && user.uid===ownerUid) editBtn.style.display='inline';
-    editBtn.addEventListener('click',()=>{ window.location.href=`/home/dashboard/edit-clock?id=${clockId}`; });
-  });
-}
-loadClock();
+    onAuthStateChanged(auth, async (user)=>{
+      if(!user) location.href='/login/index.html';
+      if(clockId) await loadClock(user);
+    });
 
-// Share button
-shareBtn.addEventListener('click',()=>{
-  const url = window.location.href;
-  navigator.clipboard.writeText(url).then(()=>alert('Link copied!')).catch(e=>alert('Failed: '+e));
-});
+    async function loadClock(user){
+      const ref = doc(db,'clocks',clockId);
+      const snap = await getDoc(ref);
+      if(!snap.exists()){ clockNameEl.textContent = 'Clock not found'; return; }
+      const data = snap.data();
+      clockNameEl.textContent = data.name;
+      tzOffset = parseInt(data.timeZone)||0;
+      theme = data.theme || 'dark';
+      ownerUid = data.ownerUid;
+      clockInfoEl.textContent = `Timezone: UTC${tzOffset >= 0 ? '+'+tzOffset : tzOffset}`;
 
-// Ensure auth
-onAuthStateChanged(auth,user=>{ if(!user) location.href='/login/index.html'; });
+      if(user.uid === ownerUid){
+        editBtn.style.display='inline';
+        editBtn.addEventListener('click',()=>{ 
+          window.location.href=`/home/dashboard/edit-clock.html?id=${clockId}`; 
+        });
+      }
 
-</script>
+      shareBtn.addEventListener('click',()=>{
+        navigator.clipboard.writeText(window.location.href)
+          .then(()=>alert('Clock link copied!'));
+      });
+
+      drawClock();
+    }
+
+    function drawClock(){
+      ctx.clearRect(-radius,-radius,canvas.width,canvas.height);
+      const now = new Date(Date.now() + tzOffset*3600*1000);
+      drawFace(ctx,radius);
+      drawNumbers(ctx,radius);
+      drawTime(ctx,radius,now);
+      requestAnimationFrame(drawClock);
+    }
+
+    function drawFace(ctx,radius){
+      ctx.beginPath();
+      ctx.arc(0,0,radius,0,2*Math.PI);
+      ctx.fillStyle = (theme==='light')?'#fff':'#000';
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = radius*0.04;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(0,0,radius*0.05,0,2*Math.PI);
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+    }
+
+    function drawNumbers(ctx,radius){
+      ctx.font = radius*0.18 + "px Poppins";
+      ctx.textBaseline="middle";
+      ctx.textAlign="center";
+      for(let num=1;num<=12;num++){
+        const ang=num*Math.PI/6;
+        ctx.rotate(ang);
+        ctx.translate(0,-radius*0.82);
+        ctx.rotate(-ang);
+        ctx.fillStyle = theme==='light'?'#000':'#fff';
+        ctx.fillText(num.toString(),0,0);
+        ctx.rotate(ang);
+        ctx.translate(0,radius*0.82);
+        ctx.rotate(-ang);
+      }
+    }
+
+    function drawTime(ctx,radius,now){
+      let hour = now.getUTCHours();
+      let minute = now.getUTCMinutes();
+      let second = now.getUTCSeconds();
+      hour = hour%12;
+      hour = (hour*Math.PI/6)+(minute*Math.PI/(6*60))+(second*Math.PI/(360*60));
+      drawHand(ctx,hour,radius*0.5,radius*0.07);
+      let minuteAngle = (minute*Math.PI/30)+(second*Math.PI/(30*60));
+      drawHand(ctx,minuteAngle,radius*0.8,radius*0.07);
+      let secondAngle = second*Math.PI/30;
+      drawHand(ctx,secondAngle,radius*0.9,radius*0.02,'red');
+    }
+
+    function drawHand(ctx,pos,length,width,color='#fff'){
+      ctx.beginPath();
+      ctx.lineWidth=width;
+      ctx.lineCap='round';
+      ctx.strokeStyle=color;
+      ctx.moveTo(0,0);
+      ctx.rotate(pos);
+      ctx.lineTo(0,-length);
+      ctx.stroke();
+      ctx.rotate(-pos);
+    }
+  </script>
 </body>
-  </html>
+</html>
