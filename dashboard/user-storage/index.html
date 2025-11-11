@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>TimeSphere | User Storage</title>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
+<style>
+  /* TimeSphere consistent styling */
+  :root{--card-bg: rgba(255,255,255,0.06); --card-hover: rgba(255,255,255,0.12);}
+  body { margin:0; font-family:'Poppins',sans-serif; background: linear-gradient(135deg,#5d54a4,#7c78b8); color:#fff; overflow-x:hidden; }
+  header { display:flex; justify-content:space-between; align-items:center; padding:1rem 1.5rem; background: rgba(255,255,255,0.08); backdrop-filter: blur(8px); position:fixed; width:100%; top:0; z-index:10; }
+  .menu-btn { font-size:2rem; cursor:pointer; transition: transform .25s; } .menu-btn:hover{ transform:scale(1.06); }
+  .title { font-weight:600; font-size:1.25rem; }
+  .right { display:flex; align-items:center; gap:0.8rem; }
+  .clock { font-weight:600; min-width:100px; text-align:right; }
+  .logout-btn { cursor:pointer; background: rgba(255,255,255,0.12); padding:0.4rem 0.8rem; border-radius:8px; font-weight:600; }
+  .logout-btn:hover { background: rgba(255,255,255,0.22); }
+
+  /* side menu */
+  #sideMenu { position:fixed; top:0; left:-260px; width:260px; height:100%; background: rgba(0,0,0,0.32); backdrop-filter: blur(8px); padding-top:4rem; transition:left .35s; z-index:20; }
+  #sideMenu.open { left:0; }
+  #sideMenu a { display:flex; align-items:center; gap:1rem; padding:1rem 1.25rem; color:white; text-decoration:none; transition: background .18s; }
+  #sideMenu a:hover { background: rgba(255,255,255,0.06); }
+
+  #menuOverlay { display:none; position:fixed; inset:0; background: rgba(0,0,0,0.32); z-index:15; }
+  #menuOverlay.show { display:block; }
+
+  main { margin-top:92px; padding:2rem; display:flex; flex-direction:column; gap:1.25rem; align-items:center; }
+
+  .card { width:100%; max-width:1100px; background:var(--card-bg); border-radius:16px; padding:18px; box-shadow: 0 8px 30px rgba(0,0,0,0.25); }
+
+  .welcome { display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap; }
+  .hello { font-size:1.15rem; font-weight:700; }
+  .storage-summary { text-align:right; }
+  .storage-summary .big { font-size:1.25rem; font-weight:800; }
+  .progress-bar { height:12px; background: rgba(255,255,255,0.12); border-radius:8px; overflow:hidden; margin-top:8px; }
+  .progress-fill { height:100%; background: linear-gradient(90deg,#3ccf8e,#2fbf9a); width:0%; transition:width .5s; }
+
+  .grid { display:grid; grid-template-columns: 1fr 380px; gap:18px; width:100%; }
+  @media (max-width:980px){ .grid{ grid-template-columns: 1fr; } }
+
+  /* left column: creations list */
+  .list { display:flex; flex-direction:column; gap:10px; }
+  .item-row { display:flex; gap:12px; align-items:center; padding:12px; border-radius:12px; background: rgba(255,255,255,0.04); cursor:pointer; transition: transform .18s, background .18s; }
+  .item-row:hover { transform:translateY(-4px); background: var(--card-hover); }
+  .icon-wrap { width:48px; height:48px; border-radius:10px; display:grid; place-items:center; background: rgba(255,255,255,0.06); }
+  .item-info .title { font-weight:700; }
+  .item-info .meta { color: rgba(255,255,255,0.75); font-size:0.9rem; }
+
+  /* right column: largest creations */
+  .side { display:flex; flex-direction:column; gap:12px; }
+  .side h3 { margin:0; font-size:1.05rem; }
+  .largest-list { display:flex; flex-direction:column; gap:10px; margin-top:6px; }
+  .largest-row { display:flex; justify-content:space-between; gap:10px; align-items:center; padding:10px; border-radius:10px; background: rgba(255,255,255,0.03); }
+  .muted { color: rgba(255,255,255,0.8); font-size:0.95rem; }
+
+  .empty { text-align:center; padding:18px; color: rgba(255,255,255,0.8); }
+
+</style>
+</head>
+<body>
+  <header>
+    <span class="menu-btn material-icons" id="menuToggle">menu</span>
+    <div class="title">TimeSphere</div>
+    <div class="right">
+      <div class="clock" id="clock">--:--:--</div>
+      <div class="logout-btn" id="logoutBtn">Logout</div>
+    </div>
+  </header>
+
+  <nav id="sideMenu" aria-hidden="true">
+    <a href="/home/dashboard/"><span class="material-icons">home</span>Dashboard</a>
+    <a href="/home/dashboard/users/"><span class="material-icons">group</span>Users</a>
+    <a href="/home/dashboard/groups/"><span class="material-icons">groups</span>Groups</a>
+    <a href="/home/dashboard/create/"><span class="material-icons">add_circle</span>Create</a>
+    <a href="/home/dashboard/user-storage/"><span class="material-icons">storage</span>User Storage</a>
+    <a href="/home/dashboard/coins/"><span class="material-icons">paid</span>Coins</a>
+    <a href="/home/dashboard/quests-and-rewards/"><span class="material-icons">emoji_events</span>Quests</a>
+    <a href="/home/dashboard/settings/"><span class="material-icons">settings</span>Settings</a>
+  </nav>
+  <div id="menuOverlay"></div>
+
+  <main>
+    <div class="card welcome">
+      <div class="hello" id="helloText">Hello, —</div>
+      <div class="storage-summary">
+        <div class="muted">Your Storage Space</div>
+        <div class="big" id="usedText">0 MB / 250 MB</div>
+        <div class="muted" id="percentText">0%</div>
+        <div class="progress-bar" aria-hidden="true"><div id="progressFill" class="progress-fill" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <div class="card grid">
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <h2 style="margin:0">All Your Creations</h2>
+          <div class="muted" id="totalCount">0 items</div>
+        </div>
+
+        <div class="list" id="creationsList">
+          <div class="empty" id="loadingLeft">Loading your creations…</div>
+        </div>
+      </div>
+
+      <aside class="side">
+        <div>
+          <h3 style="margin:0">Largest Your Creations</h3>
+          <div class="muted" style="margin-top:6px">Top 5 by estimated used space</div>
+        </div>
+        <div class="largest-list" id="largestList">
+          <div class="empty" id="loadingRight">Loading sizes…</div>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+import { getFirestore, doc, getDoc, collection, getDocs, query, where, runTransaction, setDoc } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
+
+// Firebase config (same)
+const firebaseConfig = {
+  apiKey: "AIzaSyBiGzil9wA3CXZWxWjHsn7iKPkiYQozQW8",
+  authDomain: "timesphere-9f7e0.firebaseapp.com",
+  projectId: "timesphere-9f7e0",
+  storageBucket: "timesphere-9f7e0.firebasestorage.app",
+  messagingSenderId: "94629610195",
+  appId: "1:94629610195:web:a037e5c5aa0c5ba7e50a26"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+// helper format
+const fmt = n => Number(n).toFixed(2);
+
+// header clock (Europe/London)
+function updateHeaderClock(){
+  const now = new Date();
+  try {
+    document.getElementById('clock').textContent = new Intl.DateTimeFormat('en-GB',{
+      hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false, timeZone:'Europe/London'
+    }).format(now);
+  } catch(e){
+    document.getElementById('clock').textContent = now.toLocaleTimeString('en-GB',{hour12:false});
+  }
+}
+updateHeaderClock(); setInterval(updateHeaderClock,1000);
+
+// menu toggle
+const menuToggle = document.getElementById('menuToggle');
+const sideMenu = document.getElementById('sideMenu');
+const overlay = document.getElementById('menuOverlay');
+menuToggle.addEventListener('click', ()=>{ sideMenu.classList.add('open'); overlay.classList.add('show'); sideMenu.setAttribute('aria-hidden','false'); });
+overlay.addEventListener('click', ()=>{ sideMenu.classList.remove('open'); overlay.classList.remove('show'); sideMenu.setAttribute('aria-hidden','true'); });
+
+// logout
+document.getElementById('logoutBtn').addEventListener('click', ()=>{ auth.signOut?.(); window.location.href='/login/index.html'; });
+
+// estimated sizes constants (MB)
+const SIZE_COUNTDOWN = 0.35;   // 0.2-0.5 -> midpoint
+const SIZE_CLOCK = 4.8;       // 2.6-7 -> midpoint
+const SIZE_TIME = 1.25;       // 1.1-1.4 -> midpoint
+const GROUP_BASE = 5.0;       // base MB for group
+const MB_PER_CHAR_IN_POST = 0.01; // 10 chars -> 0.1MB => 0.01MB/char
+const STORAGE_LIMIT_MB = 250.0;
+
+// UI elements
+const helloText = document.getElementById('helloText');
+const usedText = document.getElementById('usedText');
+const percentText = document.getElementById('percentText');
+const progressFill = document.getElementById('progressFill');
+const creationsList = document.getElementById('creationsList');
+const largestList = document.getElementById('largestList');
+const totalCountEl = document.getElementById('totalCount');
+const loadingLeft = document.getElementById('loadingLeft');
+const loadingRight = document.getElementById('loadingRight');
+
+// STORAGE UTILITIES (exported on window so Create pages can call them)
+/**
+ * Atomically ensure storage doc exists and return usedMB (number).
+ */
+async function ensureStorageDoc(uid){
+  const storageRef = doc(db,'storage', uid);
+  return await runTransaction(db, async (tx) => {
+    const snap = await tx.get(storageRef);
+    if(!snap.exists()){
+      tx.set(storageRef, { used: 0 });
+      return 0;
+    } else {
+      const d = snap.data();
+      const used = typeof d.used === 'number' ? d.used : (typeof d.used === 'string' ? parseFloat((d.used.match(/[\d.]+/)||[0])[0]) : 0);
+      return used;
+    }
+  });
+}
+
+/**
+ * Try to reserve amountMB (number) for current user.
+ * Returns true if reservation succeeded (used increased), false if not enough space.
+ * Uses transaction to avoid races.
+ */
+async function reserveStorageForCurrentUser(amountMB){
+  const user = auth.currentUser;
+  if(!user) throw new Error('Not authenticated');
+  const uid = user.uid;
+  const storageRef = doc(db,'storage', uid);
+
+  try {
+    const result = await runTransaction(db, async (tx) => {
+      const snap = await tx.get(storageRef);
+      let used = 0;
+      if(!snap.exists()){
+        // create doc with used = 0
+        tx.set(storageRef, { used: 0 });
+        used = 0;
+      } else {
+        const d = snap.data();
+        used = typeof d.used === 'number' ? d.used : (typeof d.used === 'string' ? parseFloat((d.used.match(/[\d.]+/)||[0])[0]) : 0);
+      }
+
+      const newUsed = Number((used + Number(amountMB)).toFixed(4));
+      if(newUsed > STORAGE_LIMIT_MB) {
+        // do not write, indicate failure
+        return { ok:false, used };
+      }
+      tx.update(storageRef, { used: newUsed });
+      return { ok:true, used: newUsed };
+    });
+
+    return result.ok === true;
+  } catch(err){
+    console.error('reserveStorage transaction error', err);
+    throw err;
+  }
+}
+
+/**
+ * Check if there is enough space (without reserving).
+ * Returns boolean.
+ */
+async function canCreateWithoutReserve(amountMB){
+  const user = auth.currentUser;
+  if(!user) throw new Error('Not authenticated');
+  const uid = user.uid;
+  const storageRef = doc(db,'storage', uid);
+  const snap = await getDoc(storageRef);
+  let used = 0;
+  if(!snap.exists()) {
+    used = 0;
+  } else {
+    const d = snap.data();
+    used = typeof d.used === 'number' ? d.used : (typeof d.used === 'string' ? parseFloat((d.used.match(/[\d.]+/)||[0])[0]) : 0);
+  }
+  return (used + Number(amountMB)) <= STORAGE_LIMIT_MB;
+}
+
+/**
+ * Release previously reserved space (subtract amountMB). Uses transaction.
+ */
+async function releaseStorageForCurrentUser(amountMB){
+  const user = auth.currentUser;
+  if(!user) throw new Error('Not authenticated');
+  const uid = user.uid;
+  const storageRef = doc(db,'storage', uid);
+
+  await runTransaction(db, async (tx) => {
+    const snap = await tx.get(storageRef);
+    if(!snap.exists()){
+      tx.set(storageRef, { used: 0 });
+      return;
+    }
+    const d = snap.data();
+    let used = typeof d.used === 'number' ? d.used : (typeof d.used === 'string' ? parseFloat((d.used.match(/[\d.]+/)||[0])[0]) : 0);
+    let newUsed = Number((used - Number(amountMB)).toFixed(4));
+    if(newUsed < 0) newUsed = 0;
+    tx.update(storageRef, { used: newUsed });
+  });
+}
+
+// Expose helpers for other pages (Create pages can call these)
+window.reserveStorage = reserveStorageForCurrentUser;
+window.canCreateWithoutReserve = canCreateWithoutReserve;
+window.releaseStorage = releaseStorageForCurrentUser;
+window.storageLimitMB = STORAGE_LIMIT_MB;
+
+// MAIN: load UI & compute sizes
+onAuthStateChanged(auth, async (user) => {
+  if(!user){ window.location.href = '/login/index.html'; return; }
+  const uid = user.uid;
+  helloText.textContent = `Hello, ${uid}`;
+
+  // ensure storage doc exists and read used
+  try {
+    const usedMB = await ensureStorageDoc(uid);
+    usedText.textContent = `${fmt(usedMB)} MB / ${fmt(STORAGE_LIMIT_MB)} MB`;
+    const pct = Math.min(100, (usedMB / STORAGE_LIMIT_MB) * 100);
+    percentText.textContent = `${fmt(pct)}%`;
+    progressFill.style.width = `${pct}%`;
+  } catch(err){
+    console.error('ensureStorageDoc error', err);
+  }
+
+  // fetch creations and estimate sizes (as before)
+  const collections = [
+    { key:'countdowns', type:'Countdown', icon:'hourglass_bottom', urlPrefix:'/home/dashboard/countdown.html?name=' },
+    { key:'clocks', type:'Clock', icon:'schedule', urlPrefix:'/home/dashboard/clock.html?id=' },
+    { key:'current_times', type:'Time', icon:'access_time', urlPrefix:'/home/dashboard/time.html?id=' },
+    { key:'group', type:'Group', icon:'groups', urlPrefix:'/home/dashboard/groups/group.html?name=' }
+  ];
+
+  const items = [];
+
+  const pushItem = (id, name, type, estMB, icon, url) => items.push({ id, name, type, estMB, icon, url });
+
+  for(const col of collections){
+    try {
+      const q = query(collection(db, col.key), where('ownerUid','==', uid));
+      const snap = await getDocs(q);
+      if(!snap.empty){
+        for(const docSnap of snap.docs){
+          const data = docSnap.data();
+          const docId = docSnap.id;
+          const itemName = data.name || docId;
+          if(col.key === 'countdowns'){
+            pushItem(docId, itemName, col.type, SIZE_COUNTDOWN, col.icon, col.urlPrefix + encodeURIComponent(docId));
+          } else if(col.key === 'clocks'){
+            pushItem(docId, itemName, col.type, SIZE_CLOCK, col.icon, col.urlPrefix + encodeURIComponent(docId));
+          } else if(col.key === 'current_times'){
+            pushItem(docId, itemName, col.type, SIZE_TIME, col.icon, col.urlPrefix + encodeURIComponent(docId));
+          } else if(col.key === 'group'){
+            let groupSize = GROUP_BASE;
+            // fetch posts for this group (post_group where group == docId)
+            try {
+              const postsQ = query(collection(db, 'post_group'), where('group','==', docId));
+              const postsSnap = await getDocs(postsQ);
+              if(!postsSnap.empty){
+                postsSnap.forEach(p => {
+                  const pd = p.data();
+                  const text = pd.text || '';
+                  groupSize += (text.length * MB_PER_CHAR_IN_POST);
+                });
+              }
+            } catch(err){
+              console.error('Error fetching posts for group', docId, err);
+            }
+            pushItem(docId, itemName, col.type, groupSize, col.icon, col.urlPrefix + encodeURIComponent(docId));
+          }
+        }
+      }
+    } catch(err){
+      console.error('Error querying collection', col.key, err);
+    }
+  }
+
+  // show left list
+  if (loadingLeft) loadingLeft.remove();
+  if (loadingRight) loadingRight.remove();
+
+  if(items.length === 0){
+    creationsList.innerHTML = `<div class="empty">You don't have any creations yet.</div>`;
+    totalCountEl.textContent = '0 items';
+  } else {
+    totalCountEl.textContent = `${items.length} items`;
+    creationsList.innerHTML = '';
+    items.forEach(it => {
+      const row = document.createElement('div');
+      row.className = 'item-row';
+      row.innerHTML = `
+        <div class="icon-wrap"><span class="material-icons">${it.icon}</span></div>
+        <div class="item-info">
+          <div class="title">${it.name}</div>
+          <div class="meta">${it.type} • Estimated ${fmt(it.estMB)} MB</div>
+        </div>
+      `;
+      row.addEventListener('click', ()=> { window.location.href = it.url; });
+      creationsList.appendChild(row);
+    });
+  }
+
+  // top5 largest
+  const sorted = items.slice().sort((a,b) => b.estMB - a.estMB);
+  const top5 = sorted.slice(0,5);
+  if(top5.length === 0){
+    largestList.innerHTML = `<div class="empty">No creations to show.</div>`;
+  } else {
+    largestList.innerHTML = '';
+    top5.forEach(it => {
+      const r = document.createElement('div');
+      r.className = 'largest-row';
+      r.innerHTML = `
+        <div style="display:flex;gap:10px;align-items:center;">
+          <span class="material-icons" style="font-size:20px">${it.icon}</span>
+          <div>
+            <div style="font-weight:700">${it.name}</div>
+            <div class="muted" style="font-size:0.85rem">${it.type}</div>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-weight:700">${fmt(it.estMB)} MB</div>
+        </div>
+      `;
+      r.addEventListener('click', ()=> { window.location.href = it.url; });
+      largestList.appendChild(r);
+    });
+  }
+
+}); // onAuthStateChanged end
+
+/**
+ * How to use these helpers from Create pages:
+ *
+ * // example: before creating an item that needs `sizeMB`
+ * const ok = await window.reserveStorage(sizeMB);
+ * if (!ok) {
+ *   alert('Not enough storage. Free some space or upgrade.');
+ *   return; // prevent creation
+ * }
+ * // proceed to create document / storage usage
+ * // if creation fails, call:
+ * // await window.releaseStorage(sizeMB);
+ *
+ * // or just check without reserving:
+ * const can = await window.canCreateWithoutReserve(sizeMB);
+ * if (!can) { alert('Not enough space'); }
+ *
+ */
+
+</script>
+</body>
+  </html>
