@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>TimeSphere | Create Current Time</title>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    /* consistent TimeSphere styling */
+    body {
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg,#5d54a4,#7c78b8);
+      color: #fff;
+      overflow-x: hidden;
+    }
+
+    header {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      padding:1rem 1.5rem;
+      background: rgba(255,255,255,0.08);
+      backdrop-filter: blur(8px);
+      position:fixed;
+      width:100%;
+      top:0;
+      z-index:10;
+    }
+    .menu-btn { font-size:2rem; cursor:pointer; }
+    .title { font-weight:600; font-size:1.25rem; }
+    .right { display:flex; align-items:center; gap:0.8rem; }
+    .clock { font-weight:600; min-width:100px; text-align:right; }
+    .login-btn, .logout-btn { cursor:pointer; background: rgba(255,255,255,0.12); padding:0.4rem 0.8rem; border-radius:8px; font-weight:600; }
+    .login-btn:hover, .logout-btn:hover { background: rgba(255,255,255,0.22); }
+
+    /* side menu */
+    #sideMenu {
+      position:fixed; top:0; left:-260px;
+      width:260px; height:100%;
+      background: rgba(0,0,0,0.32); backdrop-filter: blur(8px);
+      padding-top:4rem; transition:left .35s; z-index:20;
+    }
+    #sideMenu.open { left:0; }
+    #sideMenu a { display:flex; align-items:center; gap:1rem; padding:1rem 1.25rem; color:white; text-decoration:none; transition: background .18s; }
+    #sideMenu a:hover { background: rgba(255,255,255,0.06); }
+
+    #menuOverlay { display:none; position:fixed; inset:0; background: rgba(0,0,0,0.32); z-index:15; }
+    #menuOverlay.show { display:block; }
+
+    main { margin-top:92px; padding:2rem; display:flex; justify-content:center; }
+    .section {
+      width:100%; max-width:920px;
+      background: rgba(255,255,255,0.06);
+      border-radius:18px;
+      padding:18px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+      display:grid;
+      grid-template-columns: 1fr 360px;
+      gap: 18px;
+      align-items:start;
+    }
+    @media (max-width:920px){
+      .section { grid-template-columns: 1fr; }
+    }
+
+    .left { display:flex; flex-direction:column; gap:12px; }
+    label { font-weight:600; margin-bottom:6px; display:block; }
+    input[type="text"], select {
+      width:100%; padding:10px; border-radius:10px; border:none; outline:none;
+      background: rgba(255,255,255,0.06); color: #fff; font-size:1rem;
+    }
+
+    .preview-card {
+      background: rgba(255,255,255,0.04);
+      padding:16px;
+      border-radius:14px;
+      text-align:center;
+    }
+    .preview-time {
+      font-size:2.2rem; font-weight:700; margin-top:8px;
+    }
+
+    .create-btn {
+      display:inline-block;
+      margin-top:8px;
+      padding:10px 14px;
+      border-radius:10px;
+      border:none;
+      cursor:pointer;
+      font-weight:700;
+      background: linear-gradient(90deg,#3ccf8e,#2fbf9a);
+      color:#022;
+    }
+    .create-btn:disabled { opacity:0.6; cursor:not-allowed; }
+
+    .muted { color: rgba(255,255,255,0.8); font-size:0.95rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="menu-btn material-icons" id="menuToggle">menu</span>
+    <div class="title">TimeSphere</div>
+    <div class="right">
+      <div class="clock" id="clock">--:--:--</div>
+      <div class="logout-btn" id="logoutBtn">Logout</div>
+    </div>
+  </header>
+
+  <nav id="sideMenu" aria-hidden="true">
+    <a href="/home/dashboard/"><span class="material-icons">home</span>Dashboard</a>
+    <a href="/home/dashboard/users/"><span class="material-icons">group</span>Users</a>
+    <a href="/home/dashboard/groups/"><span class="material-icons">groups</span>Groups</a>
+    <a href="/home/dashboard/create/"><span class="material-icons">add_circle</span>Create</a>
+    <a href="/home/dashboard/user-storage/"><span class="material-icons">storage</span>Storage</a>
+    <a href="/home/dashboard/coins/"><span class="material-icons">paid</span>Coins</a>
+    <a href="/home/dashboard/quests-and-rewards/"><span class="material-icons">emoji_events</span>Quests</a>
+    <a href="/home/dashboard/settings/"><span class="material-icons">settings</span>Settings</a>
+  </nav>
+  <div id="menuOverlay" tabindex="-1"></div>
+
+  <main>
+    <section class="section" role="main" aria-labelledby="createTitle">
+      <div class="left">
+        <h2 id="createTitle" style="margin:0 0 6px 0;">Create Current Time</h2>
+
+        <div>
+          <label for="timeName">Display Name</label>
+          <input id="timeName" type="text" placeholder="My Live Time" />
+        </div>
+
+        <div>
+          <label for="tzOffset">Timezone (UTC offset)</label>
+          <select id="tzOffset" aria-label="Timezone offset">
+            <!-- +14 down to -12 -->
+          </select>
+        </div>
+
+        <div>
+          <label>Preview Label</label>
+          <div id="previewLabel" class="muted">—</div>
+        </div>
+
+        <div>
+          <button id="createBtn" class="create-btn">Create Current Time and redirect to your time</button>
+        </div>
+      </div>
+
+      <aside class="preview-card" aria-label="Preview">
+        <div class="muted">Preview (live)</div>
+        <div id="previewTime" class="preview-time">--:--:--</div>
+        <div id="previewZone" class="muted" style="margin-top:8px;">Timezone: UTC+0</div>
+      </aside>
+    </section>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
+
+    // Firebase config (same)
+    const firebaseConfig = {
+      apiKey: "AIzaSyBiGzil9wA3CXZWxWjHsn7iKPkiYQozQW8",
+      authDomain: "timesphere-9f7e0.firebaseapp.com",
+      projectId: "timesphere-9f7e0",
+      storageBucket: "timesphere-9f7e0.firebasestorage.app",
+      messagingSenderId: "94629610195",
+      appId: "1:94629610195:web:a037e5c5aa0c5ba7e50a26"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    // Safe DOM helper
+    const $ = id => document.getElementById(id);
+
+    // Header clock -> Europe/London
+    const headerClock = $('clock');
+    function updateHeaderClock(){
+      const now = new Date();
+      try {
+        headerClock.textContent = new Intl.DateTimeFormat('en-GB', {
+          hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'Europe/London'
+        }).format(now);
+      } catch(e){
+        headerClock.textContent = now.toLocaleTimeString('en-GB', { hour12: false });
+      }
+    }
+    updateHeaderClock();
+    setInterval(updateHeaderClock, 1000);
+
+    // Menu toggle behavior (safe)
+    const menuToggle = $('menuToggle');
+    const sideMenu = $('sideMenu');
+    const menuOverlay = $('menuOverlay');
+    if(menuToggle && sideMenu && menuOverlay){
+      menuToggle.addEventListener('click', ()=>{ sideMenu.classList.add('open'); menuOverlay.classList.add('show'); sideMenu.setAttribute('aria-hidden','false'); });
+      menuOverlay.addEventListener('click', ()=>{ sideMenu.classList.remove('open'); menuOverlay.classList.remove('show'); sideMenu.setAttribute('aria-hidden','true'); });
+      document.addEventListener('keydown', (e) => { if(e.key === 'Escape'){ sideMenu.classList.remove('open'); menuOverlay.classList.remove('show'); sideMenu.setAttribute('aria-hidden','true'); } });
+    }
+
+    // Logout
+    $('logoutBtn')?.addEventListener('click', ()=>{ auth.signOut?.(); window.location.href = '/login/index.html'; });
+
+    // Populate timezone offsets +14 ... -12
+    const tzSelect = $('tzOffset');
+    (function fillTZ(){
+      const plus = 14;
+      const minus = -12;
+      for(let tz = plus; tz >= minus; tz--){
+        const opt = document.createElement('option');
+        opt.value = String(tz);
+        opt.textContent = `UTC${tz >= 0 ? '+'+tz : tz}`;
+        tzSelect.appendChild(opt);
+      }
+      tzSelect.value = '0';
+    })();
+
+    // Inputs & preview elements
+    const timeName = $('timeName');
+    const previewTime = $('previewTime');
+    const previewZone = $('previewZone');
+    const previewLabel = $('previewLabel');
+    const createBtn = $('createBtn');
+
+    // live preview function using numeric offset (simple: now + offset hours)
+    function formatTwo(n){ return String(n).padStart(2,'0'); }
+    function updatePreview(){
+      const offset = Number(tzSelect.value || 0);
+      const now = new Date(Date.now() + offset * 3600 * 1000);
+      const hh = formatTwo(now.getUTCHours());
+      const mm = formatTwo(now.getUTCMinutes());
+      const ss = formatTwo(now.getUTCSeconds());
+      previewTime.textContent = `${hh}:${mm}:${ss}`;
+      previewZone.textContent = `Timezone: UTC${offset >= 0 ? '+'+offset : offset}`;
+      previewLabel.textContent = timeName.value.trim() || '—';
+    }
+    updatePreview();
+    setInterval(updatePreview, 1000);
+
+    // Auth guard: ensure user is signed in before allowing create
+    onAuthStateChanged(auth, user => {
+      if(!user){
+        // redirect to login if not authenticated
+        try { window.location.href = '/login/index.html'; } catch(e) {}
+      }
+    });
+
+    // Create action
+    createBtn.addEventListener('click', async () => {
+      const user = auth.currentUser;
+      if(!user){
+        alert('Not signed in'); return;
+      }
+      const name = timeName.value.trim();
+      if(!name){ alert('Enter a name for this time display'); return; }
+
+      createBtn.disabled = true;
+      createBtn.textContent = 'Creating...';
+
+      try {
+        const docRef = await addDoc(collection(db, 'current_times'), {
+          name,
+          tzOffset: String(tzSelect.value),
+          ownerUid: user.uid,
+          createdAt: new Date().toISOString()
+        });
+        // redirect to view page (consistent path)
+        window.location.href = `/home/dashboard/time.html?id=${encodeURIComponent(docRef.id)}`;
+      } catch (err) {
+        console.error(err);
+        alert('Failed to create: ' + (err.message || err));
+        createBtn.disabled = false;
+        createBtn.textContent = 'Create Current Time and redirect to your time';
+      }
+    });
+
+    // keep preview label updated live
+    timeName.addEventListener('input', () => previewLabel.textContent = timeName.value.trim() || '—');
+
+  </script>
+</body>
+</html>
