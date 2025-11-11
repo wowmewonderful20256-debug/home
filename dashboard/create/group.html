@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>TimeSphere | Create Group</title>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
+<style>
+  body {
+    margin:0; font-family:'Poppins',sans-serif;
+    background: linear-gradient(135deg,#5d54a4,#7c78b8);
+    color:#fff; overflow-x:hidden;
+  }
+  header {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:1rem 1.5rem;
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(8px);
+    position:fixed; width:100%; top:0; z-index:10;
+  }
+  .menu-btn { font-size:2rem; cursor:pointer; }
+  .title { font-weight:600; font-size:1.25rem; }
+  .right { display:flex; align-items:center; gap:0.8rem; }
+  .clock { font-weight:600; min-width:100px; text-align:right; }
+  .logout-btn { cursor:pointer; background: rgba(255,255,255,0.12); padding:0.4rem 0.8rem; border-radius:8px; font-weight:600; }
+  .logout-btn:hover { background: rgba(255,255,255,0.22); }
+
+  #sideMenu {
+    position:fixed; top:0; left:-260px;
+    width:260px; height:100%;
+    background: rgba(0,0,0,0.32); backdrop-filter: blur(8px);
+    padding-top:4rem; transition:left .35s; z-index:20;
+  }
+  #sideMenu.open { left:0; }
+  #sideMenu a { display:flex; align-items:center; gap:1rem; padding:1rem 1.25rem; color:white; text-decoration:none; transition: background .18s; }
+  #sideMenu a:hover { background: rgba(255,255,255,0.06); }
+
+  #menuOverlay { display:none; position:fixed; inset:0; background: rgba(0,0,0,0.32); z-index:15; }
+  #menuOverlay.show { display:block; }
+
+  main { margin-top:92px; padding:2rem; display:flex; justify-content:center; }
+  .card {
+    width:100%; max-width:600px;
+    background: rgba(255,255,255,0.06);
+    border-radius:18px;
+    padding:18px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+    text-align:left;
+  }
+
+  .form-group {
+    display:flex; align-items:center; margin:1rem 0; gap:0.6rem;
+  }
+  .form-group label { min-width:24px; text-align:center; }
+  input, textarea {
+    flex:1;
+    padding:0.5rem 0.8rem; border-radius:10px; border:none; outline:none;
+    font-size:1rem; background: rgba(255,255,255,0.2); color:#fff;
+  }
+  textarea { resize:none; min-height:80px; }
+
+  .preview { font-size:1rem; margin-bottom:0.5rem; color:rgba(255,255,255,0.8); }
+  button {
+    width:100%; padding:0.7rem; margin-top:1rem; border:none; border-radius:10px;
+    background: rgba(255,255,255,0.2); color:#fff; font-weight:600; cursor:pointer;
+    transition: background 0.3s;
+  }
+  button:hover { background: rgba(255,255,255,0.4); }
+</style>
+</head>
+<body>
+<header>
+  <span class="menu-btn material-icons" id="menuToggle">menu</span>
+  <div class="title">TimeSphere</div>
+  <div class="right">
+    <div class="clock" id="clock">--:--:--</div>
+    <div class="logout-btn" id="logoutBtn">Logout</div>
+  </div>
+</header>
+
+<nav id="sideMenu" aria-hidden="true">
+  <a href="/home/dashboard/"><span class="material-icons">home</span>Dashboard</a>
+  <a href="/home/dashboard/users/"><span class="material-icons">group</span>Users</a>
+  <a href="/home/dashboard/groups/"><span class="material-icons">groups</span>Groups</a>
+  <a href="/home/dashboard/create/"><span class="material-icons">add_circle</span>Create</a>
+  <a href="/home/dashboard/user-storage/"><span class="material-icons">storage</span>Storage</a>
+  <a href="/home/dashboard/coins/"><span class="material-icons">paid</span>Coins</a>
+  <a href="/home/dashboard/quests-and-rewards/"><span class="material-icons">emoji_events</span>Quests</a>
+  <a href="/home/dashboard/settings/"><span class="material-icons">settings</span>Settings</a>
+</nav>
+<div id="menuOverlay" tabindex="-1"></div>
+
+<main>
+  <div class="card">
+    <div class="preview" id="titlePreview">Title preview: </div>
+    <div class="form-group">
+      <label class="material-icons">edit</label>
+      <input type="text" id="titleInput" placeholder="Enter group title" />
+    </div>
+
+    <div class="preview" id="descPreview">Description preview: </div>
+    <div class="form-group">
+      <label class="material-icons">description</label>
+      <textarea id="descInput" placeholder="Enter group description"></textarea>
+    </div>
+
+    <button id="createBtn">Create Group and redirect</button>
+  </div>
+</main>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
+
+// Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyBiGzil9wA3CXZWxWjHsn7iKPkiYQozQW8",
+  authDomain: "timesphere-9f7e0.firebaseapp.com",
+  projectId: "timesphere-9f7e0",
+  storageBucket: "timesphere-9f7e0.firebasestorage.app",
+  messagingSenderId: "94629610195",
+  appId: "1:94629610195:web:a037e5c5aa0c5ba7e50a26"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+// Header clock Europe/London
+function updateHeaderClock() {
+  const now = new Date();
+  const options = { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Europe/London' };
+  document.getElementById('clock').textContent = new Intl.DateTimeFormat('en-GB', options).format(now);
+}
+setInterval(updateHeaderClock, 1000);
+updateHeaderClock();
+
+// Menu toggle
+const sideMenu = document.getElementById('sideMenu');
+const overlay = document.getElementById('menuOverlay');
+document.getElementById('menuToggle').addEventListener('click', () => { sideMenu.classList.add('open'); overlay.classList.add('show'); });
+overlay.addEventListener('click', () => { sideMenu.classList.remove('open'); overlay.classList.remove('show'); });
+
+// Logout
+document.getElementById('logoutBtn').addEventListener('click', () => { location.href='/login/index.html'; });
+
+// Live preview
+const titleInput = document.getElementById('titleInput');
+const descInput = document.getElementById('descInput');
+const titlePreview = document.getElementById('titlePreview');
+const descPreview = document.getElementById('descPreview');
+
+titleInput.addEventListener('input', ()=>{ titlePreview.textContent = "Title preview: " + titleInput.value; });
+descInput.addEventListener('input', ()=>{ descPreview.textContent = "Description preview: " + descInput.value; });
+
+// Create group
+const createBtn = document.getElementById('createBtn');
+createBtn.addEventListener('click', async ()=>{
+  const title = titleInput.value.trim();
+  const description = descInput.value.trim();
+  if(!title){ alert('Enter group title'); return; }
+
+  const user = auth.currentUser;
+  if(!user){ alert('Not signed in'); return; }
+
+  const docRef = await addDoc(collection(db,'groups'),{
+    name: title,
+    description,
+    ownerUid: user.uid,
+    createdAt: new Date().toISOString()
+  });
+
+  window.location.href = `/home/dashboard/groups/group.html?name=${encodeURIComponent(title)}`;
+});
+
+// Ensure user is logged in
+onAuthStateChanged(auth, user => { if(!user) location.href='/login/index.html'; });
+</script>
+</body>
+  </html>
