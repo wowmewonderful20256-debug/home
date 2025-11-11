@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>TimeSphere | Your Creations</title>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
+<style>
+  body {
+    margin:0; font-family:'Poppins',sans-serif;
+    background: linear-gradient(135deg,#5d54a4,#7c78b8);
+    color:#fff; overflow-x:hidden;
+  }
+  header {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:1rem 2rem;
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(8px);
+    position:fixed; width:100%; top:0; z-index:10;
+  }
+  .menu-btn { font-size:2rem; cursor:pointer; transition: transform .3s; } 
+  .menu-btn:hover { transform:scale(1.06); }
+  .title { font-weight:600; font-size:1.4rem; }
+  .right { display:flex; align-items:center; gap:1rem; }
+  .clock, .logout-btn { font-weight:600; }
+  .logout-btn { cursor:pointer; background: rgba(255,255,255,0.15); padding:0.5rem 1rem; border-radius:8px; transition: background .2s; }
+  .logout-btn:hover { background: rgba(255,255,255,0.28); }
+
+  /* side menu */
+  #sideMenu {
+    position:fixed; top:0; left:-260px;
+    width:260px; height:100%;
+    background: rgba(0,0,0,0.32); backdrop-filter: blur(8px);
+    padding-top:4rem; transition:left .35s; z-index:20;
+  }
+  #sideMenu.open { left:0; }
+  #sideMenu a { display:flex; align-items:center; gap:1rem; padding:1rem 1.25rem; color:white; text-decoration:none; transition: background .18s; }
+  #sideMenu a:hover { background: rgba(255,255,255,0.06); }
+
+  #menuOverlay { display:none; position:fixed; inset:0; background: rgba(0,0,0,0.32); z-index:15; }
+  #menuOverlay.show { display:block; }
+
+  main {
+    margin-top:90px;
+    padding:2rem;
+    display:flex; flex-direction:column; gap:1.5rem;
+    align-items:center;
+  }
+
+  h2 { font-weight:700; font-size:1.5rem; margin-bottom:1rem; }
+
+  .creations-grid {
+    display:grid; grid-template-columns: repeat(auto-fill,minmax(220px,1fr));
+    gap:1rem; width:100%; max-width:1000px;
+  }
+
+  .card {
+    background: rgba(255,255,255,0.08); 
+    border-radius:18px; 
+    padding:20px; 
+    box-shadow: 0 8px 30px rgba(0,0,0,0.25); 
+    display:flex; align-items:center; gap:10px; cursor:pointer; 
+    transition: transform .2s, background .2s; 
+  }
+  .card:hover { transform:translateY(-4px); background: rgba(255,255,255,0.12); }
+
+  .card i { font-size:2rem; }
+
+  .card .info { display:flex; flex-direction:column; }
+  .card .info .name { font-weight:600; font-size:1.1rem; }
+  .card .info .type { font-size:0.9rem; color:rgba(255,255,255,0.7); }
+</style>
+</head>
+<body>
+<header>
+  <span class="menu-btn material-icons" id="menuToggle">menu</span>
+  <h1 class="title">TimeSphere</h1>
+  <div class="right">
+    <div class="clock" id="clock">--:--:--</div>
+    <div class="logout-btn" id="logoutBtn">Logout</div>
+  </div>
+</header>
+
+<nav id="sideMenu">
+  <a href="/home/dashboard/"><span class="material-icons">home</span>Dashboard</a>
+  <a href="/home/dashboard/users/"><span class="material-icons">group</span>Users</a>
+  <a href="/home/dashboard/groups/"><span class="material-icons">groups</span>Groups</a>
+  <a href="/home/dashboard/create/"><span class="material-icons">add_circle</span>Create</a>
+  <a href="/home/dashboard/user-storage/"><span class="material-icons">storage</span>Storage</a>
+  <a href="/home/dashboard/coins/"><span class="material-icons">paid</span>Coins</a>
+  <a href="/home/dashboard/quests-and-rewards/"><span class="material-icons">emoji_events</span>Quests</a>
+  <a href="/home/dashboard/settings/"><span class="material-icons">settings</span>Settings</a>
+</nav>
+<div id="menuOverlay"></div>
+
+<main>
+  <h2 id="yourCreationsTitle">Your Creations (0)</h2>
+  <div class="creations-grid" id="creationsGrid">
+    <!-- Karty będą tutaj -->
+  </div>
+</main>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
+
+// Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyBiGzil9wA3CXZWxWjHsn7iKPkiYQozQW8",
+  authDomain: "timesphere-9f7e0.firebaseapp.com",
+  projectId: "timesphere-9f7e0",
+  storageBucket: "timesphere-9f7e0.appspot.com",
+  messagingSenderId: "94629610195",
+  appId: "1:94629610195:web:a037e5c5aa0c5ba7e50a26"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+// Header clock Europe/London
+function updateHeaderClock() {
+  const now = new Date();
+  const options = { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Europe/London' };
+  document.getElementById('clock').textContent = new Intl.DateTimeFormat('en-GB', options).format(now);
+}
+setInterval(updateHeaderClock,1000);
+updateHeaderClock();
+
+// Menu toggle
+const sideMenu = document.getElementById('sideMenu');
+const overlay = document.getElementById('menuOverlay');
+document.getElementById('menuToggle').addEventListener('click', ()=>{ sideMenu.classList.add('open'); overlay.classList.add('show'); });
+overlay.addEventListener('click', ()=>{ sideMenu.classList.remove('open'); overlay.classList.remove('show'); });
+
+// Logout
+document.getElementById('logoutBtn').addEventListener('click', ()=>{ location.href='/login/index.html'; });
+
+// Pobieranie dokumentów właściciela
+onAuthStateChanged(auth, async (user)=>{
+  if(!user) { location.href='/login/index.html'; return; }
+
+  const userUid = user.uid;
+  const grid = document.getElementById('creationsGrid');
+
+  const collections = [
+    {name:'Countdown', col:'countdowns', icon:'hourglass_bottom', link:'/home/dashboard/countdown.html?name='},
+    {name:'Clock', col:'clocks', icon:'schedule', link:'/home/dashboard/clock.html?id='},
+    {name:'Time', col:'current_times', icon:'access_time', link:'/home/dashboard/time.html?id='},
+    {name:'Group', col:'group', icon:'groups', link:'/home/dashboard/groups/group.html?name='}
+  ];
+
+  let total = 0;
+
+  for(const item of collections){
+    const q = query(collection(db,item.col),where('ownerUid','==',userUid));
+    const docsSnap = await getDocs(q);
+    docsSnap.forEach(docSnap=>{
+      total++;
+      const data = docSnap.data();
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `<i class="material-icons">${item.icon}</i>
+        <div class="info">
+          <div class="name">${data.name || docSnap.id}</div>
+          <div class="type">${item.name}</div>
+        </div>`;
+      card.addEventListener('click', ()=>{ window.location.href = item.link + encodeURIComponent(docSnap.id); });
+      grid.appendChild(card);
+    });
+  }
+
+  document.getElementById('yourCreationsTitle').textContent = `Your Creations (${total})`;
+});
+</script>
+</body>
+  </html>
