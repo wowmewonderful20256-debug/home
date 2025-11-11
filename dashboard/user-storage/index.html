@@ -7,7 +7,6 @@
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
 <style>
-  /* consistent TimeSphere styling */
   :root{--card-bg: rgba(255,255,255,0.06); --card-hover: rgba(255,255,255,0.12);}
   body { margin:0; font-family:'Poppins',sans-serif; background: linear-gradient(135deg,#5d54a4,#7c78b8); color:#fff; overflow-x:hidden; }
   header { display:flex; justify-content:space-between; align-items:center; padding:1rem 1.5rem; background: rgba(255,255,255,0.08); backdrop-filter: blur(8px); position:fixed; width:100%; top:0; z-index:10; }
@@ -18,7 +17,6 @@
   .logout-btn { cursor:pointer; background: rgba(255,255,255,0.12); padding:0.4rem 0.8rem; border-radius:8px; font-weight:600; }
   .logout-btn:hover { background: rgba(255,255,255,0.22); }
 
-  /* side menu */
   #sideMenu { position:fixed; top:0; left:-260px; width:260px; height:100%; background: rgba(0,0,0,0.32); backdrop-filter: blur(8px); padding-top:4rem; transition:left .35s; z-index:20; }
   #sideMenu.open { left:0; }
   #sideMenu a { display:flex; align-items:center; gap:1rem; padding:1rem 1.25rem; color:white; text-decoration:none; transition: background .18s; }
@@ -41,7 +39,6 @@
   .grid { display:grid; grid-template-columns: 1fr 380px; gap:18px; width:100%; }
   @media (max-width:980px){ .grid{ grid-template-columns: 1fr; } }
 
-  /* left column: creations list */
   .list { display:flex; flex-direction:column; gap:10px; }
   .item-row { display:flex; gap:12px; align-items:center; padding:12px; border-radius:12px; background: rgba(255,255,255,0.04); cursor:pointer; transition: transform .18s, background .18s; }
   .item-row:hover { transform:translateY(-4px); background: var(--card-hover); }
@@ -49,17 +46,17 @@
   .item-info .title { font-weight:700; }
   .item-info .meta { color: rgba(255,255,255,0.75); font-size:0.9rem; }
 
-  /* right column: largest creations */
   .side { display:flex; flex-direction:column; gap:12px; }
   .side h3 { margin:0; font-size:1.05rem; }
   .largest-list { display:flex; flex-direction:column; gap:10px; margin-top:6px; }
   .largest-row { display:flex; justify-content:space-between; gap:10px; align-items:center; padding:10px; border-radius:10px; background: rgba(255,255,255,0.03); }
   .muted { color: rgba(255,255,255,0.8); font-size:0.95rem; }
-
   .empty { text-align:center; padding:18px; color: rgba(255,255,255,0.8); }
-
-  /* small helpers */
   .small { font-size:0.85rem; color:rgba(255,255,255,0.8); }
+
+  .repair-bar { display:flex; gap:8px; align-items:center; }
+  .btn { background: rgba(255,255,255,0.12); padding:6px 10px; border-radius:8px; cursor:pointer; font-weight:700; }
+  .btn:hover { background: rgba(255,255,255,0.22); }
 </style>
 </head>
 <body>
@@ -86,7 +83,14 @@
 
   <main>
     <div class="card welcome">
-      <div class="hello" id="helloText">Hello, —</div>
+      <div>
+        <div class="hello" id="helloText">Hello, —</div>
+        <div class="repair-bar" style="margin-top:8px;">
+          <div class="small">Storage repair:</div>
+          <div class="btn" id="recomputeBtn">Recompute storage from creations</div>
+          <div class="btn" id="recomputeIfZeroBtn">Auto-fix only if used == 0</div>
+        </div>
+      </div>
       <div class="storage-summary">
         <div class="muted">Your Storage Space</div>
         <div class="big" id="usedText">0 MB / 250 MB</div>
@@ -120,21 +124,13 @@
   </main>
 
 <script type="module">
-/* Full working script for user-storage page
-   - reads storage/UID.used (creates doc if missing)
-   - fetches creations from countdowns, clocks, current_times, group
-   - for groups calculates extra size from post_group documents where field group == groupId
-   - exposes window.reserveStorage / canCreateWithoutReserve / releaseStorage for Create pages
-*/
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
 import {
   getFirestore, doc, getDoc, collection, getDocs, query, where,
-  runTransaction, setDoc
+  runTransaction, setDoc, updateDoc
 } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
 
-// Firebase config — use your project's config
 const firebaseConfig = {
   apiKey: "AIzaSyBiGzil9wA3CXZWxWjHsn7iKPkiYQozQW8",
   authDomain: "timesphere-9f7e0.firebaseapp.com",
@@ -143,20 +139,17 @@ const firebaseConfig = {
   messagingSenderId: "94629610195",
   appId: "1:94629610195:web:a037e5c5aa0c5ba7e50a26"
 };
-
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// constants for size estimation (MB)
-const SIZE_COUNTDOWN = 0.35;   // 0.2-0.5 midpoint
-const SIZE_CLOCK = 4.8;       // 2.6-7 midpoint
-const SIZE_TIME = 1.25;       // 1.1-1.4 midpoint
-const GROUP_BASE = 5.0;       // base MB for group
-const MB_PER_CHAR_IN_POST = 0.01; // 10 chars -> 0.1MB => 0.01MB/char
+const SIZE_COUNTDOWN = 0.35;
+const SIZE_CLOCK = 4.8;
+const SIZE_TIME = 1.25;
+const GROUP_BASE = 5.0;
+const MB_PER_CHAR_IN_POST = 0.01;
 const STORAGE_LIMIT_MB = 250.0;
 
-// UI refs
 const helloText = document.getElementById('helloText');
 const usedText = document.getElementById('usedText');
 const percentText = document.getElementById('percentText');
@@ -166,11 +159,11 @@ const largestList = document.getElementById('largestList');
 const totalCountEl = document.getElementById('totalCount');
 const loadingLeft = document.getElementById('loadingLeft');
 const loadingRight = document.getElementById('loadingRight');
+const recomputeBtn = document.getElementById('recomputeBtn');
+const recomputeIfZeroBtn = document.getElementById('recomputeIfZeroBtn');
 
-// small formatter
 const fmt = n => Number(n).toFixed(2);
 
-// header clock (Europe/London)
 function updateHeaderClock(){
   const now = new Date();
   try {
@@ -183,25 +176,15 @@ function updateHeaderClock(){
 }
 updateHeaderClock(); setInterval(updateHeaderClock,1000);
 
-// menu toggle
 const menuToggle = document.getElementById('menuToggle');
 const sideMenu = document.getElementById('sideMenu');
 const overlay = document.getElementById('menuOverlay');
 menuToggle.addEventListener('click', ()=>{ sideMenu.classList.add('open'); overlay.classList.add('show'); sideMenu.setAttribute('aria-hidden','false'); });
 overlay.addEventListener('click', ()=>{ sideMenu.classList.remove('open'); overlay.classList.remove('show'); sideMenu.setAttribute('aria-hidden','true'); });
 
-// logout
-document.getElementById('logoutBtn').addEventListener('click', ()=>{ auth.signOut?.(); window.location.href='/login/index.html'; });
+document.getElementById('logoutBtn').addEventListener('click', ()=>{ auth.signOut?.(); window.location.href = '/login/index.html'; });
 
-/*
- Storage helpers (use in Create pages):
-  - window.reserveStorage(amountMB) => returns true if reserved (and updates storage/UID.used), false if not enough space
-  - window.canCreateWithoutReserve(amountMB) => boolean (no write)
-  - window.releaseStorage(amountMB) => decrease used by amountMB (transactional)
-  - window.storageLimitMB => constant 250
-*/
-
-// ensure storage doc exists and return used MB
+/* Storage helpers */
 async function ensureStorageDoc(uid){
   const storageRef = doc(db,'storage', uid);
   return await runTransaction(db, async (tx) => {
@@ -216,136 +199,144 @@ async function ensureStorageDoc(uid){
     }
   });
 }
-
-// reserve amountMB atomically for current authenticated user
 async function reserveStorageForCurrentUser(amountMB){
   const user = auth.currentUser;
   if(!user) throw new Error('Not authenticated');
   const uid = user.uid;
   const storageRef = doc(db,'storage', uid);
-
-  try {
-    const result = await runTransaction(db, async (tx) => {
-      const snap = await tx.get(storageRef);
-      let used = 0;
-      if(!snap.exists()){
-        tx.set(storageRef, { used: 0 });
-        used = 0;
-      } else {
-        const d = snap.data();
-        used = typeof d.used === 'number' ? d.used : (typeof d.used === 'string' ? parseFloat((d.used.match(/[\d.]+/)||[0])[0]) : 0);
-      }
-
-      const newUsed = Number((used + Number(amountMB)).toFixed(4));
-      if(newUsed > STORAGE_LIMIT_MB) {
-        return { ok:false, used };
-      }
-      tx.update(storageRef, { used: newUsed });
-      return { ok:true, used: newUsed };
-    });
-
-    return result.ok === true;
-  } catch(err){
-    console.error('reserveStorage transaction error', err);
-    throw err;
-  }
+  const result = await runTransaction(db, async (tx)=>{
+    const snap = await tx.get(storageRef);
+    let used = 0;
+    if(!snap.exists()){ tx.set(storageRef,{used:0}); used = 0; } else { const d = snap.data(); used = typeof d.used==='number'?d.used:parseFloat((d.used.match(/[\d.]+/)||[0])[0]); }
+    const newUsed = Number((used + Number(amountMB)).toFixed(4));
+    if(newUsed > STORAGE_LIMIT_MB) return { ok:false, used };
+    tx.update(storageRef,{ used: newUsed });
+    return { ok:true, used: newUsed };
+  });
+  return result.ok === true;
 }
-
-// simple check without writing
 async function canCreateWithoutReserve(amountMB){
-  const user = auth.currentUser;
-  if(!user) throw new Error('Not authenticated');
-  const uid = user.uid;
-  const storageRef = doc(db,'storage', uid);
+  const user = auth.currentUser; if(!user) throw new Error('Not authenticated');
+  const storageRef = doc(db,'storage', user.uid);
   const snap = await getDoc(storageRef);
   let used = 0;
-  if(!snap.exists()) used = 0;
-  else {
-    const d = snap.data();
-    used = typeof d.used === 'number' ? d.used : (typeof d.used === 'string' ? parseFloat((d.used.match(/[\d.]+/)||[0])[0]) : 0);
-  }
+  if(!snap.exists()) used = 0; else { const d = snap.data(); used = typeof d.used==='number'?d.used:parseFloat((d.used.match(/[\d.]+/)||[0])[0]); }
   return (used + Number(amountMB)) <= STORAGE_LIMIT_MB;
 }
-
-// release reserved space
 async function releaseStorageForCurrentUser(amountMB){
-  const user = auth.currentUser;
-  if(!user) throw new Error('Not authenticated');
-  const uid = user.uid;
-  const storageRef = doc(db,'storage', uid);
-
-  await runTransaction(db, async (tx) => {
+  const user = auth.currentUser; if(!user) throw new Error('Not authenticated');
+  const storageRef = doc(db,'storage', user.uid);
+  await runTransaction(db, async (tx)=>{
     const snap = await tx.get(storageRef);
-    if(!snap.exists()){
-      tx.set(storageRef, { used: 0 });
-      return;
-    }
+    if(!snap.exists()){ tx.set(storageRef,{used:0}); return; }
     const d = snap.data();
-    let used = typeof d.used === 'number' ? d.used : (typeof d.used === 'string' ? parseFloat((d.used.match(/[\d.]+/)||[0])[0]) : 0);
+    let used = typeof d.used==='number'?d.used:parseFloat((d.used.match(/[\d.]+/)||[0])[0]);
     let newUsed = Number((used - Number(amountMB)).toFixed(4));
     if(newUsed < 0) newUsed = 0;
-    tx.update(storageRef, { used: newUsed });
+    tx.update(storageRef,{ used: newUsed });
   });
 }
-
-// expose helpers
 window.reserveStorage = reserveStorageForCurrentUser;
 window.canCreateWithoutReserve = canCreateWithoutReserve;
 window.releaseStorage = releaseStorageForCurrentUser;
 window.storageLimitMB = STORAGE_LIMIT_MB;
 
-// MAIN UI logic
-onAuthStateChanged(auth, async (user) => {
+/* compute estimated used based on current creations for given uid */
+async function computeEstimatedUsedForUid(uid){
+  const collections = [
+    { key:'countdowns', size: SIZE_COUNTDOWN },
+    { key:'clocks', size: SIZE_CLOCK },
+    { key:'current_times', size: SIZE_TIME },
+    { key:'group', size: GROUP_BASE }
+  ];
+  let total = 0;
+  for(const col of collections){
+    const q = query(collection(db, col.key), where('ownerUid','==', uid));
+    const snap = await getDocs(q);
+    if(snap.empty) continue;
+    for(const ds of snap.docs){
+      if(col.key !== 'group'){
+        total += col.size;
+      } else {
+        // group: base + posts chars
+        let groupSize = GROUP_BASE;
+        try {
+          const postsQ = query(collection(db,'post_group'), where('group','==', ds.id));
+          const postsSnap = await getDocs(postsQ);
+          if(!postsSnap.empty){
+            postsSnap.forEach(p => {
+              const pd = p.data();
+              const text = pd.text || '';
+              groupSize += (text.length * MB_PER_CHAR_IN_POST);
+            });
+          }
+        } catch(e){ console.error('posts fetch error', e); }
+        total += groupSize;
+      }
+    }
+  }
+  return Number(total.toFixed(4));
+}
+
+/* set storage used to value MB (transactional overwrite)
+   if onlyIfZero==true then update only when used === 0
+*/
+async function writeStorageUsed(uid, valueMB, onlyIfZero=false){
+  const storageRef = doc(db,'storage', uid);
+  return await runTransaction(db, async (tx) => {
+    const snap = await tx.get(storageRef);
+    if(!snap.exists()){
+      tx.set(storageRef, { used: Number(valueMB.toFixed(4)) });
+      return { written:true, prev:0 };
+    } else {
+      const prev = snap.data().used || 0;
+      if(onlyIfZero && Number(prev) !== 0){
+        return { written:false, prev };
+      }
+      tx.update(storageRef, { used: Number(valueMB.toFixed(4)) });
+      return { written:true, prev };
+    }
+  });
+}
+
+/* main UI flow: load items & show stats */
+onAuthStateChanged(auth, async (user)=>{
   if(!user){ window.location.href = '/login/index.html'; return; }
   const uid = user.uid;
   helloText.textContent = `Hello, ${uid}`;
 
-  // ensure storage doc exists and show used
+  // ensure doc exists and show used
   try {
     const used = await ensureStorageDoc(uid);
     usedText.textContent = `${fmt(used)} MB / ${fmt(STORAGE_LIMIT_MB)} MB`;
     const pct = Math.min(100, (used / STORAGE_LIMIT_MB) * 100);
     percentText.textContent = `${fmt(pct)}%`;
     progressFill.style.width = `${pct}%`;
-  } catch(err){
-    console.error('ensureStorageDoc error', err);
-    usedText.textContent = `0 MB / ${fmt(STORAGE_LIMIT_MB)} MB`;
-    percentText.textContent = `0%`;
-    progressFill.style.width = `0%`;
-  }
+  } catch(err){ console.error(err); }
 
-  // collections to fetch
+  // fetch creations and render (same as before)
   const collections = [
     { key:'countdowns', type:'Countdown', icon:'hourglass_bottom', size:SIZE_COUNTDOWN, urlPrefix:'/home/dashboard/countdown.html?name=' },
     { key:'clocks', type:'Clock', icon:'schedule', size:SIZE_CLOCK, urlPrefix:'/home/dashboard/clock.html?id=' },
     { key:'current_times', type:'Time', icon:'access_time', size:SIZE_TIME, urlPrefix:'/home/dashboard/time.html?id=' },
     { key:'group', type:'Group', icon:'groups', size:GROUP_BASE, urlPrefix:'/home/dashboard/groups/group.html?name=' }
   ];
-
   const items = [];
-
-  // fetch for each collection
   for(const col of collections){
     try {
       const q = query(collection(db, col.key), where('ownerUid','==', uid));
       const snap = await getDocs(q);
-
-      // if there are documents, iterate; if none, skip but groups will be empty too (handled)
       if(!snap.empty){
         for(const docSnap of snap.docs){
           const data = docSnap.data();
           const id = docSnap.id;
           const name = data.name || id;
           if(col.key !== 'group'){
-            // countdowns, clocks, times: straightforward
-            items.push({
-              id, name, type: col.type, estMB: col.size, icon: col.icon, url: col.urlPrefix + encodeURIComponent(id)
-            });
+            items.push({ id, name, type: col.type, estMB: col.size, icon: col.icon, url: col.urlPrefix + encodeURIComponent(id) });
           } else {
-            // group: base + posts size
             let groupSize = GROUP_BASE;
             try {
-              const postsQ = query(collection(db, 'post_group'), where('group','==', id));
+              const postsQ = query(collection(db,'post_group'), where('group','==', id));
               const postsSnap = await getDocs(postsQ);
               if(!postsSnap.empty){
                 postsSnap.forEach(p => {
@@ -354,25 +345,17 @@ onAuthStateChanged(auth, async (user) => {
                   groupSize += (text.length * MB_PER_CHAR_IN_POST);
                 });
               }
-            } catch(err){
-              console.error('Error fetching posts for group', id, err);
-            }
-            items.push({
-              id, name, type: col.type, estMB: Number(groupSize.toFixed(4)), icon: col.icon, url: col.urlPrefix + encodeURIComponent(id)
-            });
+            } catch(err){ console.error('Error fetching posts for group', id, err); }
+            items.push({ id, name, type: col.type, estMB: Number(groupSize.toFixed(4)), icon: col.icon, url: col.urlPrefix + encodeURIComponent(id) });
           }
         }
       }
-    } catch(err){
-      console.error('Error querying collection', col.key, err);
-    }
+    } catch(err){ console.error('Error querying', col.key, err); }
   }
 
-  // remove loading placeholders
-  if (loadingLeft) loadingLeft.remove();
-  if (loadingRight) loadingRight.remove();
+  if(loadingLeft) loadingLeft.remove();
+  if(loadingRight) loadingRight.remove();
 
-  // render list
   if(items.length === 0){
     creationsList.innerHTML = `<div class="empty">You don't have any creations yet.</div>`;
     totalCountEl.textContent = '0 items';
@@ -394,12 +377,11 @@ onAuthStateChanged(auth, async (user) => {
     });
   }
 
-  // top5 largest
-  const sorted = items.slice().sort((a,b) => b.estMB - a.estMB);
+  // top5
+  const sorted = items.slice().sort((a,b)=> b.estMB - a.estMB);
   const top5 = sorted.slice(0,5);
-  if(top5.length === 0){
-    largestList.innerHTML = `<div class="empty">No creations to show.</div>`;
-  } else {
+  if(top5.length === 0) largestList.innerHTML = `<div class="empty">No creations to show.</div>`;
+  else {
     largestList.innerHTML = '';
     top5.forEach(it => {
       const r = document.createElement('div');
@@ -407,22 +389,62 @@ onAuthStateChanged(auth, async (user) => {
       r.innerHTML = `
         <div style="display:flex;gap:10px;align-items:center;">
           <span class="material-icons" style="font-size:20px">${it.icon}</span>
-          <div>
-            <div style="font-weight:700">${it.name}</div>
-            <div class="muted" style="font-size:0.85rem">${it.type}</div>
-          </div>
+          <div><div style="font-weight:700">${it.name}</div><div class="muted" style="font-size:0.85rem">${it.type}</div></div>
         </div>
-        <div style="text-align:right">
-          <div style="font-weight:700">${fmt(it.estMB)} MB</div>
-        </div>
+        <div style="text-align:right"><div style="font-weight:700">${fmt(it.estMB)} MB</div></div>
       `;
       r.addEventListener('click', ()=> { window.location.href = it.url; });
       largestList.appendChild(r);
     });
   }
 
-}); // end onAuthStateChanged
+  // ---- recompute button handlers ----
+  recomputeBtn.addEventListener('click', async ()=>{
+    recomputeBtn.textContent = 'Computing…';
+    try {
+      const estimated = await computeEstimatedUsedForUid(uid);
+      const confirmed = confirm(`Estimated total used (from creations): ${fmt(estimated)} MB\n\nOverwrite storage/${uid}.used with this value?`);
+      if(!confirmed) { recomputeBtn.textContent = 'Recompute storage from creations'; return; }
+      // write
+      await writeStorageUsed(uid, estimated, false);
+      alert('storage updated to ' + fmt(estimated) + ' MB');
+      // refresh UI
+      usedText.textContent = `${fmt(estimated)} MB / ${fmt(STORAGE_LIMIT_MB)} MB`;
+      const pct = Math.min(100,(estimated/STORAGE_LIMIT_MB)*100);
+      percentText.textContent = `${fmt(pct)}%`;
+      progressFill.style.width = `${pct}%`;
+    } catch(err){
+      console.error(err);
+      alert('Error while recomputing: ' + err.message);
+    } finally { recomputeBtn.textContent = 'Recompute storage from creations'; }
+  });
 
+  recomputeIfZeroBtn.addEventListener('click', async ()=>{
+    recomputeIfZeroBtn.textContent = 'Checking…';
+    try {
+      const curSnap = await getDoc(doc(db,'storage', uid));
+      const curUsed = curSnap.exists() ? (curSnap.data().used || 0) : 0;
+      if(Number(curUsed) !== 0){
+        alert(`Current used is ${curUsed} MB (not zero). This auto-fix only runs when used == 0.`);
+        recomputeIfZeroBtn.textContent = 'Auto-fix only if used == 0';
+        return;
+      }
+      const estimated = await computeEstimatedUsedForUid(uid);
+      const ok = confirm(`Current used is 0. Estimated from creations: ${fmt(estimated)} MB\nWrite this value to storage/${uid}.used?`);
+      if(!ok){ recomputeIfZeroBtn.textContent = 'Auto-fix only if used == 0'; return; }
+      await writeStorageUsed(uid, estimated, true);
+      alert('storage updated to ' + fmt(estimated) + ' MB');
+      usedText.textContent = `${fmt(estimated)} MB / ${fmt(STORAGE_LIMIT_MB)} MB`;
+      const pct = Math.min(100,(estimated/STORAGE_LIMIT_MB)*100);
+      percentText.textContent = `${fmt(pct)}%`;
+      progressFill.style.width = `${pct}%`;
+    } catch(err){
+      console.error(err);
+      alert('Error: ' + err.message);
+    } finally { recomputeIfZeroBtn.textContent = 'Auto-fix only if used == 0'; }
+  });
+
+}); // end onAuthStateChanged
 </script>
 </body>
 </html>
