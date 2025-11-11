@@ -444,6 +444,45 @@ onAuthStateChanged(auth, async (user)=>{
     } finally { recomputeIfZeroBtn.textContent = 'Auto-fix only if used == 0'; }
   });
 
+  // --- AUTOMATYCZNE ODŚWIEŻANIE STORAGE co 30s ---
+const STORAGE_REFRESH_INTERVAL_MS = 30000; // 30 sekund
+
+// funkcja pomocnicza do jednego odświeżenia
+async function refreshStorageOnce(uid) {
+  try {
+    const used = await computeEstimatedUsedForUid(uid); // twoja funkcja licząca
+    await writeStorageUsed(uid, used);                  // twoja funkcja zapisująca
+
+    // jeśli masz funkcję updateUI(uid, used) — wywołaj ją, inaczej zaktualizujemy typowe elementy DOM
+    if (typeof updateUI === 'function') {
+      updateUI(uid, used);
+    } else {
+      // fallback - aktualizuje kilka typowych elementów (dopasuj ID jeśli masz inne)
+      const elUsed = document.getElementById('usedText') || document.getElementById('usedStorage') || document.getElementById('usageText');
+      const elPercent = document.getElementById('percentText') || document.getElementById('storagePercent');
+      const elFill = document.getElementById('progressFill') || document.getElementById('fillBar');
+
+      if (elUsed) elUsed.textContent = `${used.toFixed(2)} MB / 250 MB`;
+      if (elPercent) elPercent.textContent = `${Math.min(100, (used/250)*100).toFixed(1)}%`;
+      if (elFill) elFill.style.width = `${Math.min(100, (used/250)*100)}%`;
+    }
+    console.log('[storage] refreshed:', used, 'MB');
+  } catch (err) {
+    console.error('[storage] refresh failed:', err);
+  }
+}
+
+// uruchom natychmiast raz (już powinien być jednorazowy update wcześniej — to będzie dodatkowy)
+await refreshStorageOnce(uid);
+
+// ustaw interwał
+const __storageInterval = setInterval(() => {
+  refreshStorageOnce(uid);
+}, STORAGE_REFRESH_INTERVAL_MS);
+
+// opcjonalnie: jeśli chcesz zatrzymać interwał przy wylogowaniu, możesz zachować referencję:
+// clearInterval(__storageInterval);
+
 }); // end onAuthStateChanged
 </script>
 </body>
