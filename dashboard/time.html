@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>TimeSphere | Current Time View</title>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
+<style>
+  body {
+    margin:0; font-family:'Poppins',sans-serif;
+    background: linear-gradient(135deg,#5d54a4,#7c78b8);
+    color:#fff; overflow-x:hidden;
+  }
+  header {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:1rem 1.5rem;
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(8px);
+    position:fixed; width:100%; top:0; z-index:10;
+  }
+  .menu-btn { font-size:2rem; cursor:pointer; }
+  .title { font-weight:600; font-size:1.25rem; }
+  .right { display:flex; align-items:center; gap:0.8rem; }
+  .clock { font-weight:600; min-width:100px; text-align:right; }
+  .logout-btn { cursor:pointer; background: rgba(255,255,255,0.12); padding:0.4rem 0.8rem; border-radius:8px; font-weight:600; }
+  .logout-btn:hover { background: rgba(255,255,255,0.22); }
+
+  /* side menu */
+  #sideMenu {
+    position:fixed; top:0; left:-260px;
+    width:260px; height:100%;
+    background: rgba(0,0,0,0.32); backdrop-filter: blur(8px);
+    padding-top:4rem; transition:left .35s; z-index:20;
+  }
+  #sideMenu.open { left:0; }
+  #sideMenu a { display:flex; align-items:center; gap:1rem; padding:1rem 1.25rem; color:white; text-decoration:none; transition: background .18s; }
+  #sideMenu a:hover { background: rgba(255,255,255,0.06); }
+
+  #menuOverlay { display:none; position:fixed; inset:0; background: rgba(0,0,0,0.32); z-index:15; }
+  #menuOverlay.show { display:block; }
+
+  main { margin-top:92px; padding:2rem; display:flex; justify-content:center; }
+  .card {
+    width:100%; max-width:920px;
+    background: rgba(255,255,255,0.06);
+    border-radius:18px;
+    padding:18px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+    text-align:center;
+  }
+  .time-display { font-size:2.2rem; font-weight:700; margin-top:10px; }
+  .muted { color: rgba(255,255,255,0.8); font-size:0.95rem; margin-top:6px; }
+  .btns { margin-top:12px; display:flex; justify-content:center; gap:10px; }
+  .material-icons { cursor:pointer; font-size:1.8rem; }
+</style>
+</head>
+<body>
+<header>
+  <span class="menu-btn material-icons" id="menuToggle">menu</span>
+  <div class="title">TimeSphere</div>
+  <div class="right">
+    <div class="clock" id="clock">--:--:--</div>
+    <div class="logout-btn" id="logoutBtn">Logout</div>
+  </div>
+</header>
+
+<nav id="sideMenu" aria-hidden="true">
+  <a href="/home/dashboard/"><span class="material-icons">home</span>Dashboard</a>
+  <a href="/home/dashboard/users/"><span class="material-icons">group</span>Users</a>
+  <a href="/home/dashboard/groups/"><span class="material-icons">groups</span>Groups</a>
+  <a href="/home/dashboard/create/"><span class="material-icons">add_circle</span>Create</a>
+  <a href="/home/dashboard/user-storage/"><span class="material-icons">storage</span>Storage</a>
+  <a href="/home/dashboard/coins/"><span class="material-icons">paid</span>Coins</a>
+  <a href="/home/dashboard/quests-and-rewards/"><span class="material-icons">emoji_events</span>Quests</a>
+  <a href="/home/dashboard/settings/"><span class="material-icons">settings</span>Settings</a>
+</nav>
+<div id="menuOverlay" tabindex="-1"></div>
+
+<main>
+  <div class="card">
+    <div id="timeName" style="font-size:1.5rem;font-weight:700;">Loading Current Time...</div>
+    <div class="muted" id="tzText">—</div>
+    <div class="time-display" id="currentTime">--:--:--</div>
+    <div class="btns">
+      <span class="material-icons" id="shareBtn" title="Share Time">share</span>
+      <span class="material-icons" id="editBtn" title="Edit Time" style="display:none;">edit</span>
+    </div>
+  </div>
+</main>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBiGzil9wA3CXZWxWjHsn7iKPkiYQozQW8",
+  authDomain: "timesphere-9f7e0.firebaseapp.com",
+  projectId: "timesphere-9f7e0",
+  storageBucket: "timesphere-9f7e0.firebasestorage.app",
+  messagingSenderId: "94629610195",
+  appId: "1:94629610195:web:a037e5c5aa0c5ba7e50a26"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+const $ = id => document.getElementById(id);
+const timeNameEl = $('timeName'), tzText = $('tzText'), currentTimeEl = $('currentTime');
+const shareBtn = $('shareBtn'), editBtn = $('editBtn');
+
+// header clock Europe/London
+const headerClock = $('clock');
+function updateHeaderClock(){
+  const now = new Date();
+  headerClock.textContent = new Intl.DateTimeFormat('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false,timeZone:'Europe/London'}).format(now);
+}
+updateHeaderClock(); setInterval(updateHeaderClock,1000);
+
+// menu toggle
+const sideMenu = $('sideMenu'); const overlay = $('menuOverlay');
+$('menuToggle')?.addEventListener('click',()=>{ sideMenu.classList.add('open'); overlay.classList.add('show'); sideMenu.setAttribute('aria-hidden','false'); });
+overlay?.addEventListener('click',()=>{ sideMenu.classList.remove('open'); overlay.classList.remove('show'); sideMenu.setAttribute('aria-hidden','true'); });
+
+// logout
+$('logoutBtn')?.addEventListener('click',()=>{ auth.signOut?.(); window.location.href='/login/index.html'; });
+
+// get id from URL
+const params = new URLSearchParams(window.location.search);
+const timeId = params.get('id');
+let ownerUid = null;
+
+// load current time
+async function loadTime(){
+  if(!timeId){ timeNameEl.textContent='Time not found!'; return; }
+  const docRef = doc(db,'current_times',timeId);
+  const docSnap = await getDoc(docRef);
+  if(!docSnap.exists()){ timeNameEl.textContent='Time not found!'; return; }
+  const data = docSnap.data();
+  timeNameEl.textContent = data.name || timeId;
+  tzText.textContent = `Timezone: UTC${data.tzOffset>=0 ? '+'+data.tzOffset : data.tzOffset}`;
+  ownerUid = data.ownerUid;
+
+  // share
+  shareBtn.addEventListener('click',()=>{
+    navigator.clipboard.writeText(window.location.href).then(()=>alert('Link copied!')).catch(err=>alert('Copy failed: '+err));
+  });
+
+  // edit only for owner
+  onAuthStateChanged(auth,user=>{
+    if(user && user.uid===ownerUid){
+      editBtn.style.display='inline';
+      editBtn.addEventListener('click',()=>{ window.location.href=`/home/dashboard/edit-time?id=${encodeURIComponent(timeId)}`; });
+    }
+  });
+
+  // live time display
+  setInterval(()=>{
+    const offset = Number(data.tzOffset||0);
+    const now = new Date(Date.now()+offset*3600*1000);
+    const hh = String(now.getUTCHours()).padStart(2,'0');
+    const mm = String(now.getUTCMinutes()).padStart(2,'0');
+    const ss = String(now.getUTCSeconds()).padStart(2,'0');
+    currentTimeEl.textContent = `${hh}:${mm}:${ss}`;
+  },1000);
+}
+
+// ensure user logged in
+onAuthStateChanged(auth,user=>{
+  if(!user) window.location.href='/login/index.html';
+  else loadTime();
+});
+</script>
+</body>
+  </html>
