@@ -129,7 +129,6 @@
       </div>
 
       <div style="display:flex;flex-direction:column;gap:10px;align-items:center;">
-        <button class="small-btn" id="openWalletBtn">Open Wallet</button>
         <button class="small-btn" id="getMoreBtn">Get more coins</button>
       </div>
     </div>
@@ -147,7 +146,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
-    import { getFirestore, doc, onSnapshot, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
+    import { getFirestore, doc, onSnapshot, collection, query, where, getDocs, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
     import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
 
     // firebase config - taki jak miałeś
@@ -205,8 +204,18 @@
       if(!user){ window.location.href = '/login/index.html'; return; }
       const uid = user.uid;
 
-      // coins doc
+      // coins doc ref
       const coinsRef = doc(db, 'user_coins', uid);
+
+      // ensure doc exists (create with 0 if missing)
+      try {
+        const existing = await getDoc(coinsRef);
+        if (!existing.exists()) {
+          await setDoc(coinsRef, { SphereCoins: 0 });
+        }
+      } catch (err) {
+        console.warn('Error ensuring coins doc exists', err);
+      }
 
       // realtime listener for coins
       if (unsubscribeCoins) unsubscribeCoins();
@@ -228,8 +237,7 @@
         document.getElementById('coinMeta').textContent = 'Error loading coins';
       });
 
-      // optional: show recent activity from collection user_coins/{uid}/history OR a separate collection 'coins_history'
-      // We'll try 'coins_history' collection with field uid==uid, alternative fallback: no history
+      // optional: show recent activity from collection 'coins_history' where uid == uid
       try {
         const histQuery = query(collection(db, 'coins_history'), where('uid','==', uid));
         const histSnap = await getDocs(histQuery);
@@ -259,10 +267,9 @@
 
     }); // end onAuthStateChanged
 
-    // wallet buttons (dummy redirects — adapt to your pages)
-    document.getElementById('openWalletBtn').addEventListener('click', ()=>{ window.location.href='/home/dashboard/coins/wallet.html'; });
-    document.getElementById('getMoreBtn').addEventListener('click', ()=>{ window.location.href='/home/dashboard/coins/buy.html'; });
+    // get more button -> quest-and-rewards
+    document.getElementById('getMoreBtn').addEventListener('click', ()=>{ window.location.href='/home/dashboard/quest-and-rewards/'; });
 
   </script>
 </body>
-  </html>
+</html>
