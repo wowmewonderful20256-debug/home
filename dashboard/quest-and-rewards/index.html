@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>TimeSphere | Quests & Rewards</title>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
+<style>
+  /* zachowujemy ten sam styl co w innych stronach */
+  body {
+    margin:0; font-family:'Poppins',sans-serif;
+    background: linear-gradient(135deg,#5d54a4,#7c78b8);
+    color:#fff; overflow-x:hidden;
+  }
+  header {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:1rem 2rem;
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(8px);
+    position:fixed; width:100%; top:0; z-index:10;
+  }
+  .menu-btn { font-size:2rem; cursor:pointer; transition: transform .3s; } 
+  .menu-btn:hover { transform:scale(1.06); }
+  .title { font-weight:600; font-size:1.4rem; }
+  .right { display:flex; align-items:center; gap:1rem; }
+  .clock, .logout-btn { font-weight:600; }
+  .logout-btn { cursor:pointer; background: rgba(255,255,255,0.15); padding:0.5rem 1rem; border-radius:8px; transition: background .2s; }
+  .logout-btn:hover { background: rgba(255,255,255,0.28); }
+
+  /* side menu */
+  #sideMenu {
+    position:fixed; top:0; left:-260px;
+    width:260px; height:100%;
+    background: rgba(0,0,0,0.32);
+    backdrop-filter: blur(8px);
+    padding-top:4rem; transition:left .35s; z-index:20;
+  }
+  #sideMenu.open { left:0; }
+  #sideMenu a { display:flex; align-items:center; gap:1rem; padding:1rem 1.25rem; color:white; text-decoration:none; transition: background .18s; }
+  #sideMenu a:hover { background: rgba(255,255,255,0.06); }
+
+  #menuOverlay { display:none; position:fixed; inset:0; background: rgba(0,0,0,0.32); z-index:15; }
+  #menuOverlay.show { display:block; }
+
+  main { margin-top:92px; padding:2rem; display:flex; gap:18px; justify-content:center; flex-wrap:wrap; }
+  .panel { width:100%; max-width:1100px; background: rgba(255,255,255,0.06); border-radius:16px; padding:18px; box-shadow: 0 8px 30px rgba(0,0,0,0.25); }
+
+  .row { display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+  h2 { margin:0; font-size:1.2rem; font-weight:700; }
+
+  /* quests grid */
+  .quests-grid { display:grid; grid-template-columns: repeat(auto-fill,minmax(260px,1fr)); gap:12px; margin-top:14px; }
+  .quest-card {
+    background: rgba(255,255,255,0.04);
+    border-radius:12px;
+    padding:14px;
+    position:relative;
+    overflow:hidden;
+    min-height:120px;
+    display:flex; flex-direction:column; gap:10px;
+  }
+  .quest-card .title { font-weight:700; font-size:1rem; display:flex; gap:8px; align-items:center;}
+  .quest-card .meta { color: rgba(255,255,255,0.8); font-size:0.9rem; }
+  .quest-progress { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .quest-actions { display:flex; gap:8px; margin-top:auto; }
+
+  .btn { padding:8px 10px; border-radius:10px; background: rgba(255,255,255,0.12); border:none; color:#fff; cursor:pointer; font-weight:600; }
+  .btn:hover { background: rgba(255,255,255,0.22); }
+
+  /* locked overlay */
+  .locked {
+    position:absolute; inset:0; display:grid; place-items:center; background: rgba(0,0,0,0.45);
+    backdrop-filter: blur(2px);
+    text-align:center; padding:12px;
+  }
+  .locked .txt { font-weight:700; font-size:0.95rem; color:#ffd9a8; }
+  .muted { color: rgba(255,255,255,0.85); }
+
+  /* daily reward box */
+  .daily-box { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-top:12px; }
+  .day-pill { background: rgba(255,255,255,0.05); padding:8px 12px; border-radius:10px; font-weight:700; }
+  .day-pill.active { background: linear-gradient(90deg,#3ccf8e,#2fbf9a); color:#07120a; }
+
+  /* claim button */
+  .claim-btn { background: linear-gradient(90deg,#ffd24d,#ffb547); color:#311b00; padding:8px 12px; border-radius:10px; border:none; font-weight:800; cursor:pointer; }
+  .claim-btn:disabled { opacity:0.5; cursor:not-allowed; }
+
+  @media (max-width:920px){
+    .quests-grid { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width:640px){
+    .quests-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+  <header>
+    <span class="menu-btn material-icons" id="menuToggle">menu</span>
+    <div class="title">TimeSphere</div>
+    <div class="right">
+      <div class="clock" id="clock">--:--:--</div>
+      <div class="logout-btn" id="logoutBtn">Logout</div>
+    </div>
+  </header>
+
+  <nav id="sideMenu">
+    <a href="/home/dashboard/"><span class="material-icons">home</span>Dashboard</a>
+    <a href="/home/dashboard/users/"><span class="material-icons">group</span>Users</a>
+    <a href="/home/dashboard/groups/"><span class="material-icons">groups</span>Groups</a>
+    <a href="/home/dashboard/create/"><span class="material-icons">add_circle</span>Create</a>
+    <a href="/home/dashboard/user-storage/"><span class="material-icons">storage</span>Storage</a>
+    <a href="/home/dashboard/coins/"><span class="material-icons">paid</span>Coins</a>
+    <a href="/home/dashboard/quests-and-rewards/" aria-current="page"><span class="material-icons">emoji_events</span>Quests</a>
+    <a href="/home/dashboard/settings/"><span class="material-icons">settings</span>Settings</a>
+  </nav>
+  <div id="menuOverlay"></div>
+
+  <main>
+    <!-- Quests panel -->
+    <section class="panel">
+      <div class="row" style="justify-content:space-between;">
+        <h2>Your Daily Quests</h2>
+        <div class="muted" id="resetTimer">Reset in: --:--:--</div>
+      </div>
+
+      <div class="quests-grid" id="questsGrid">
+        <!-- quest cards -->
+      </div>
+    </section>
+
+    <!-- Rewards panel -->
+    <section class="panel">
+      <div class="row">
+        <h2>Daily Reward</h2>
+        <div class="muted" id="dailyInfo">Claim every 24h — resets after inactivity</div>
+      </div>
+
+      <div class="daily-box" id="dailyBox" style="margin-top:12px;">
+        <!-- day pills -->
+      </div>
+
+      <div style="margin-top:12px;">
+        <button id="claimDailyBtn" class="claim-btn">Claim Daily Reward</button>
+        <div class="muted" id="dailyStatus" style="margin-top:8px;">You haven't claimed yet.</div>
+      </div>
+    </section>
+  </main>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+import {
+  getFirestore, doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove,
+  collection, getDocs, query, where, runTransaction, increment, onSnapshot
+} from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBiGzil9wA3CXZWxWjHsn7iKPkiYQozQW8",
+  authDomain: "timesphere-9f7e0.firebaseapp.com",
+  projectId: "timesphere-9f7e0",
+  storageBucket: "timesphere-9f7e0.appspot.com",
+  messagingSenderId: "94629610195",
+  appId: "1:94629610195:web:a037e5c5aa0c5ba7e50a26"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+// header clock Europe/London
+function updateHeaderClock(){
+  const now = new Date();
+  try {
+    const options = { hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit', timeZone:'Europe/London' };
+    document.getElementById('clock').textContent = new Intl.DateTimeFormat('en-GB', options).format(now);
+  } catch(e){
+    document.getElementById('clock').textContent = now.toLocaleTimeString('en-GB', {hour12:false});
+  }
+}
+setInterval(updateHeaderClock,1000);
+updateHeaderClock();
+
+// menu toggle
+const sideMenu = document.getElementById('sideMenu');
+const overlay = document.getElementById('menuOverlay');
+document.getElementById('menuToggle').addEventListener('click', ()=>{ sideMenu.classList.add('open'); overlay.classList.add('show'); });
+overlay.addEventListener('click', ()=>{ sideMenu.classList.remove('open'); overlay.classList.remove('show'); });
+
+// logout
+document.getElementById('logoutBtn').addEventListener('click', async () => { try{ await signOut(auth); }catch{} window.location.href='/login/index.html'; });
+
+// --- Config & helpers ---
+const QUEST_IDS = [
+  "Create clock","Create Countdown","Create Time","Create 3 Clocks",
+  "Edit Clock","Edit Countdown","Share Countdown","Edit Clock (dup)",
+  "Create Group","Account Length 10 Days"
+];
+// daily display count
+const DAILY_SHOW = 5;
+
+// reward mapping for daily reward
+const DAILY_REWARDS = [25,45,80,130,250]; // day1..final
+const DAILY_MAX_DAYS = 5;
+
+// helper format time HH:MM:SS
+function pad(n){ return String(n).padStart(2,'0'); }
+
+// compute ms until next midnight Europe/London
+function msUntilLondonMidnight(){
+  // get current time parts in Europe/London
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/London', hour12:false,
+    year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit'
+  }).formatToParts(new Date());
+  const map = {};
+  for(const p of parts) if(p.type!=='literal') map[p.type] = p.value;
+  // build a Date object for the London date at 00:00 next day, but we need its epoch in system UTC
+  // We'll create a Date using the London parts as if UTC, then compute difference between that midnight and current London time in ms.
+  const year = Number(map.year), month = Number(map.month)-1, day = Number(map.day);
+  const hour = Number(map.hour), minute = Number(map.minute), second = Number(map.second);
+  // current London time as Date (approx): build a Date from the same components but interpret as local by creating string and parsing with timezone option
+  const now = new Date();
+  // compute remaining seconds today in London:
+  const secondsPassed = hour*3600 + minute*60 + second;
+  const secondsToMidnight = 24*3600 - secondsPassed;
+  return secondsToMidnight*1000;
+}
+
+function formatMsToHMS(ms){
+  if(ms<=0) return "00:00:00";
+  const s = Math.floor(ms/1000);
+  const hh = Math.floor(s/3600);
+  const mm = Math.floor((s%3600)/60);
+  const ss = s%60;
+  return `${pad(hh)}:${pad(mm)}:${pad(ss)}`;
+}
+
+// helper to animate small number changes (coins)
+function animateNumberText(el, start, end, duration=600){
+  const st = performance.now();
+  function tick(now){
+    const t = Math.min(1,(now-st)/duration);
+    const v = Math.floor(start + (end-start)*t);
+    el.textContent = v.toLocaleString();
+    if(t<1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+// ensure user_coins/{uid} exists
+async function ensureCoinsDoc(uid){
+  const ref = doc(db,'user_coins', uid);
+  const snap = await getDoc(ref);
+  if(!snap.exists()){
+    await setDoc(ref, { SphereCoins: 0 });
+    return 0;
+  }
+  return Number((snap.data().SphereCoins)||0);
+}
+
+// add coins (transaction)
+async function addCoins(uid, amount){
+  const ref = doc(db,'user_coins', uid);
+  await runTransaction(db, async (tx) => {
+    const s = await tx.get(ref);
+    if(!s.exists()){
+      tx.set(ref, { SphereCoins: amount });
+    } else {
+      tx.update(ref, { SphereCoins: increment(amount) });
+    }
+  });
+}
+
+// subtract coins if possible (transaction) -> returns true on success, false if insufficient
+async function spendCoins(uid, amount){
+  const ref = doc(db,'user_coins', uid);
+  try {
+    const res = await runTransaction(db, async (tx) => {
+      const s = await tx.get(ref);
+      let cur = 0;
+      if(!s.exists()){
+        cur = 0;
+        tx.set(ref, { SphereCoins: 0 }); // ensure doc
+      } else {
+        cur = Number(s.data().SphereCoins || 0);
+      }
+      if(cur < amount) return { ok:false, cur };
+      tx.update(ref, { SphereCoins: Number((cur - amount).toFixed(0)) });
+      return { ok:true, cur };
+    });
+    return res.ok === true;
+  } catch(e){
+    console.error('spendCoins tx error', e);
+    return false;
+  }
+}
+
+// Claim quest reward: update user_quests doc and add coins
+async function claimQuestReward(uid, questId, reward){
+  const uqRef = doc(db,'user_quests', `${uid}_${questId}`);
+  await runTransaction(db, async (tx) => {
+    const s = await tx.get(uqRef);
+    if(!s.exists()){
+      tx.set(uqRef, { uid, questId, doneCount: 0, total: 0, claimed:true, claimedAt: new Date() });
+    } else {
+      const data = s.data();
+      if(data.claimed) throw new Error('Already claimed');
+      tx.update(uqRef, { claimed: true, claimedAt: new Date() });
+    }
+    // add coins to user_coins
+    const coinsRef = doc(db,'user_coins', uid);
+    const cs = await tx.get(coinsRef);
+    if(!cs.exists()){
+      tx.set(coinsRef, { SphereCoins: reward });
+    } else {
+      const cur = Number(cs.data().SphereCoins || 0);
+      tx.update(coinsRef, { SphereCoins: Number((cur + reward).toFixed(0)) });
+    }
+  });
+}
+
+// unlock quest for user by paying cost and push uid into quest.availableUids array
+async function unlockQuestForUser(uid, questId, cost){
+  // spend coins first
+  const ok = await spendCoins(uid, cost);
+  if(!ok) throw new Error('Insufficient coins to unlock');
+  const qRef = doc(db,'quests', questId);
+  await updateDoc(qRef, { availableUids: arrayUnion(uid) });
+}
+
+// get user progress doc (fallbacks if missing)
+async function getUserQuestProgress(uid, questId){
+  const ref = doc(db,'user_quests', `${uid}_${questId}`);
+  const snap = await getDoc(ref);
+  if(!snap.exists()) return { doneCount:0, total:0, claimed:false };
+  return snap.data();
+}
+
+// ---------- UI & main flow ----------
+const questsGrid = document.getElementById('questsGrid');
+const resetTimerEl = document.getElementById('resetTimer');
+const claimDailyBtn = document.getElementById('claimDailyBtn');
+const dailyBox = document.getElementById('dailyBox');
+const dailyStatus = document.getElementById('dailyStatus');
+
+let currentUid = null;
+let coinsUnsub = null;
+let coinsValue = 0;
+
+// periodically update reset timer
+setInterval(()=> {
+  const ms = msUntilLondonMidnight();
+  resetTimerEl.textContent = 'Reset in: ' + formatMsToHMS(ms);
+},1000);
+
+// main loader
+onAuthStateChanged(auth, async (user) => {
+  if(!user) { window.location.href = '/login/index.html'; return; }
+  currentUid = user.uid;
+
+  // ensure coins doc exists (user experience)
+  await ensureCoinsDoc(currentUid);
+
+  // load quests and render
+  await loadAndRenderQuests(currentUid);
+
+  // load daily reward UI
+  await loadDailyUI(currentUid);
+
+  // listen to coin changes for UI if you want (optional)
+  const coinsRef = doc(db,'user_coins',currentUid);
+  if(coinsUnsub) coinsUnsub();
+  coinsUnsub = onSnapshot(coinsRef, snap => {
+    coinsValue = Number((snap?.data()?.SphereCoins)||0);
+  });
+});
+
+// load quests from 'quests' collection for the requested ids
+async function loadAndRenderQuests(uid){
+  questsGrid.innerHTML = '<div class="muted">Loading quests…</div>';
+  try {
+    // fetch all docs that match the preset QUEST_IDS (if they exist)
+    const quests = [];
+    for(const id of QUEST_IDS){
+      const qRef = doc(db,'quests', id);
+      const qSnap = await getDoc(qRef);
+      if(qSnap.exists()){
+        const data = qSnap.data();
+        // expected quest doc fields (defaults applied if missing):
+        // { title, type: 'daily'|'weekly', total: number, reward: number, unlockCost: number (optional), availableUids: [] }
+        quests.push({ id, ...data });
+      } else {
+        // fallback create a light local entry so UI shows something (not writing to DB)
+        quests.push({ id, title: id, type:'daily', total:1, reward:10, unlockCost: null, availableUids: [] });
+      }
+    }
+
+    // shuffle and pick DAILY_SHOW
+    const shuffled = quests.sort(()=>Math.random()-0.5);
+    const chosen = shuffled.slice(0,DAILY_SHOW);
+
+    // render chosen quests
+    questsGrid.innerHTML = '';
+    for(const q of chosen){
+      const card = document.createElement('div');
+      card.className = 'quest-card';
+      const title = q.title || q.id;
+      const total = Number(q.total || 1);
+      const reward = Number(q.reward || 0);
+      const unlockCost = (q.unlockCost!==undefined) ? Number(q.unlockCost) : null;
+      const availableUids = Array.isArray(q.availableUids) ? q.availableUids : [];
+
+      // get user progress
+      const progress = await getUserQuestProgress(uid, q.id);
+      const done = Number(progress.doneCount || 0);
+      const claimed = Boolean(progress.claimed);
+
+      // card inner HTML
+      card.innerHTML = `
+        <div class="title"><span class="material-icons">task</span><div>${title}</div></div>
+        <div class="meta">Progress: <strong>${done}</strong> / ${total} — Reward: <strong>${reward}</strong> coins</div>
+        <div class="quest-progress"><div class="muted">${claimed?'<span style="color:#3ccf8e">✔ Done</span>':'In progress'}</div><div class="muted" id="quest-${q.id}-uptime">Update quest in: --:--:--</div></div>
+        <div class="quest-actions"></div>
+      `;
+
+      // actions area
+      const actions = card.querySelector('.quest-actions');
+
+      // is available for the user? it is available if availableUids includes uid OR availableUids is empty (open) OR q.availableAll === true
+      const isAvailable = (!Array.isArray(availableUids) || availableUids.length===0) || availableUids.includes(uid) || q.availableAll === true;
+
+      if(!isAvailable){
+        // locked overlay with unlock cost display (if unlockCost exists)
+        const lockedDiv = document.createElement('div');
+        lockedDiv.className = 'locked';
+        lockedDiv.innerHTML = `<div>
+          <div class="txt">Locked</div>
+          <div class="muted" style="margin-top:8px">Unlock for: ${unlockCost!==null?unlockCost:'?'} coins</div>
+          <div style="margin-top:10px"><button class="btn" id="unlock-${q.id}">Unlock</button></div>
+        </div>`;
+        card.appendChild(lockedDiv);
+
+        // unlock button handler
+        lockedDiv.querySelector(`#unlock-${q.id}`).addEventListener('click', async (ev) => {
+          try {
+            if(unlockCost===null){ alert('This quest cannot be unlocked'); return; }
+            const ok = await spendCoins(uid, unlockCost);
+            if(!ok){ alert('Not enough coins to unlock'); return; }
+            await updateDoc(doc(db,'quests',q.id), { availableUids: arrayUnion(uid) });
+            alert('Quest unlocked!');
+            // re-render
+            await loadAndRenderQuests(uid);
+          } catch(err){
+            console.error('unlock error', err);
+            alert('Error unlocking quest: '+ (err.message||err));
+          }
+        });
+      } else {
+        // show progress and possible claim
+        if(done >= total && !claimed){
+          const claimBtn = document.createElement('button');
+          claimBtn.className = 'claim-btn';
+          claimBtn.textContent = 'Claim coins';
+          claimBtn.addEventListener('click', async ()=>{
+            try {
+              await claimQuestReward(uid, q.id, reward);
+              alert('Claimed ' + reward + ' coins!');
+              await loadAndRenderQuests(uid);
+            } catch(err){
+              console.error('claim error', err);
+              alert('Claim failed: ' + (err.message||err));
+            }
+          });
+          actions.appendChild(claimBtn);
+        } else {
+          // optionally a disabled button showing remaining
+          const rem = Math.max(0, total - done);
+          const infoBtn = document.createElement('button');
+          infoBtn.className = 'btn';
+          infoBtn.textContent = (rem===0 ? (claimed ? 'Completed' : 'Ready') : `Need ${rem}`);
+          infoBtn.disabled = true;
+          actions.appendChild(infoBtn);
+        }
+
+        // small share / details icon as extra (nonfunctional placeholder)
+        const detailsBtn = document.createElement('button');
+        detailsBtn.className = 'btn';
+        detailsBtn.innerHTML = '<span class="material-icons">info</span>';
+        actions.appendChild(detailsBtn);
+      }
+
+      // update timer for "Update quest in: " - we count to next midnight London
+      const uptimeEl = card.querySelector(`#quest-${q.id}-uptime`);
+      function updateUptime(){
+        const ms = msUntilLondonMidnight();
+        uptimeEl.textContent = formatMsToHMS(ms);
+      }
+      updateUptime();
+      setInterval(updateUptime,1000);
+
+      questsGrid.appendChild(card);
+    }
+  } catch(e){
+    console.error('loadAndRenderQuests error', e);
+    questsGrid.innerHTML = '<div class="muted">Error loading quests.</div>';
+  }
+}
+
+// ----------------- Daily reward UI -----------------
+async function loadDailyUI(uid){
+  // daily progress stored in doc daily_rewards/{uid}
+  const drRef = doc(db,'daily_rewards', uid);
+  const drSnap = await getDoc(drRef);
+  let day = 0;
+  let lastClaim = null;
+  if(drSnap.exists()){
+    const d = drSnap.data();
+    day = Number(d.dayNumber || 0);
+    lastClaim = d.lastClaimed ? d.lastClaimed.toDate?.() || new Date(d.lastClaimed) : null;
+  }
+
+  // build day pills
+  dailyBox.innerHTML = '';
+  for(let i=1;i<=DAILY_MAX_DAYS;i++){
+    const pill = document.createElement('div');
+    pill.className = 'day-pill' + (i===day ? ' active':'');
+    const val = DAILY_REWARDS[i-1] || DAILY_REWARDS[DAILY_REWARDS.length-1];
+    pill.textContent = `Day #${i}: ${val} coins`;
+    dailyBox.appendChild(pill);
+  }
+
+  // daily status
+  if(!lastClaim){
+    dailyStatus.textContent = 'You have not claimed any daily reward yet.';
+  } else {
+    dailyStatus.textContent = 'Last claimed: ' + lastClaim.toLocaleString();
+  }
+
+  // determine if claim button is enabled
+  claimDailyBtn.disabled = false;
+  claimDailyBtn.textContent = 'Claim Daily Reward';
+
+  // on click
+  claimDailyBtn.onclick = async ()=>{
+    try {
+      // re-fetch inside click to avoid race
+      const s = await getDoc(drRef);
+      let curDay = 0;
+      let last = null;
+      if(s.exists()){
+        curDay = Number(s.data().dayNumber || 0);
+        last = s.data().lastClaimed ? s.data().lastClaimed.toDate?.() || new Date(s.data().lastClaimed) : null;
+      }
+      const now = new Date();
+      // check 24h cooldown since last claim
+      if(last){
+        const diffMs = now - last;
+        if(diffMs < (24*3600*1000)){
+          const remain = formatMsToHMS(24*3600*1000 - diffMs);
+          return alert('You can claim next daily reward in: ' + remain);
+        }
+      }
+      // check reset behavior: if last more than 48h -> reset to day1
+      let nextDay = 1;
+      if(last && (now - last) <= (48*3600*1000)){
+        // allow increment
+        nextDay = Math.min(DAILY_MAX_DAYS, (curDay||0) + 1);
+      } else {
+        nextDay = 1;
+      }
+      // award coins for nextDay
+      const coinsToGive = DAILY_REWARDS[nextDay-1] || DAILY_REWARDS[DAILY_REWARDS.length-1];
+      // transaction: update daily_rewards and add coins
+      await runTransaction(db, async (tx) => {
+        const drS = await tx.get(drRef);
+        if(!drS.exists()){
+          tx.set(drRef, { dayNumber: nextDay, lastClaimed: new Date() });
+        } else {
+          tx.update(drRef, { dayNumber: nextDay, lastClaimed: new Date() });
+        }
+        // add coins
+        const coinsRef = doc(db,'user_coins', uid);
+        const cs = await tx.get(coinsRef);
+        if(!cs.exists()){
+          tx.set(coinsRef, { SphereCoins: coinsToGive });
+        } else {
+          tx.update(coinsRef, { SphereCoins: increment(coinsToGive) });
+        }
+      });
+      alert(`You received ${coinsToGive} coins for Day #${nextDay}!`);
+      // refresh UI
+      await loadDailyUI(uid);
+    } catch(err){
+      console.error('claim daily error', err);
+      alert('Could not claim daily reward: ' + (err.message || err));
+    }
+  };
+
+  // if user already claimed today -> disable (we detect by lastClaim within 24h)
+  if(lastClaim && (new Date() - lastClaim) < (24*3600*1000)) {
+    claimDailyBtn.disabled = true;
+    claimDailyBtn.textContent = 'Already claimed (wait 24h)';
+  }
+}
+
+</script>
+</body>
+</html>
