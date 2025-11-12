@@ -189,6 +189,38 @@ overlay.addEventListener('click', ()=>{ sideMenu.classList.remove('open'); overl
 // logout
 document.getElementById('logoutBtn').addEventListener('click', async () => { try{ await signOut(auth); }catch{} window.location.href='/login/index.html'; });
 
+  // --- Quest generator (run once if missing) ---
+async function ensureQuestsExist() {
+  const questTemplates = [
+    { id: "Create clock", total: 1, reward: 15 },
+    { id: "Create Countdown", total: 1, reward: 15 },
+    { id: "Create Time", total: 1, reward: 15 },
+    { id: "Create 3 Clocks", total: 3, reward: 40 },
+    { id: "Edit Clock", total: 1, reward: 20 },
+    { id: "Edit Countdown", total: 1, reward: 20 },
+    { id: "Share Countdown", total: 1, reward: 30 },
+    { id: "Create Group", total: 1, reward: 50 },
+    { id: "Account Lenght 10 Days", total: 10, reward: 160 }
+  ];
+
+  for (const quest of questTemplates) {
+    const ref = doc(db, "quests", quest.id);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) {
+      await setDoc(ref, {
+        name: quest.id,
+        progress: 0,
+        total: quest.total,
+        reward: quest.reward,
+        questAvailableInUids: [], // lista uidów, którzy mają aktywny quest
+        type: quest.id.includes("Create") ? "daily" : "weekly", // automatyczny typ
+        createdAt: new Date().toISOString()
+      });
+      console.log(`✅ Created missing quest: ${quest.id}`);
+    }
+  }
+  }
+  
 // --- Config & helpers ---
 const QUEST_IDS = [
   "Create clock","Create Countdown","Create Time","Create 3 Clocks",
