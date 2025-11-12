@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>TimeSphere | Coins</title>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
+<style>
+  /* zachowujemy ten sam styl co w innych stronach */
+  body {
+    margin:0; font-family:'Poppins',sans-serif;
+    background: linear-gradient(135deg,#5d54a4,#7c78b8);
+    color:#fff; overflow-x:hidden;
+  }
+  header {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:1rem 2rem;
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(8px);
+    position:fixed; width:100%; top:0; z-index:10;
+  }
+  .menu-btn { font-size:2rem; cursor:pointer; transition: transform .3s; } 
+  .menu-btn:hover { transform:scale(1.06); }
+  .title { font-weight:600; font-size:1.4rem; }
+  .right { display:flex; align-items:center; gap:1rem; }
+  .clock, .logout-btn { font-weight:600; }
+  .logout-btn { cursor:pointer; background: rgba(255,255,255,0.15); padding:0.5rem 1rem; border-radius:8px; transition: background .2s; }
+  .logout-btn:hover { background: rgba(255,255,255,0.28); }
+
+  /* side menu */
+  #sideMenu {
+    position:fixed; top:0; left:-260px;
+    width:260px; height:100%;
+    background: rgba(0,0,0,0.32); backdrop-filter: blur(8px);
+    padding-top:4rem; transition:left .35s; z-index:20;
+  }
+  #sideMenu.open { left:0; }
+  #sideMenu a { display:flex; align-items:center; gap:1rem; padding:1rem 1.25rem; color:white; text-decoration:none; transition: background .18s; }
+  #sideMenu a:hover { background: rgba(255,255,255,0.06); }
+
+  #menuOverlay { display:none; position:fixed; inset:0; background: rgba(0,0,0,0.32); z-index:15; }
+  #menuOverlay.show { display:block; }
+
+  main {
+    margin-top:90px;
+    padding:2rem;
+    display:flex; flex-direction:column; gap:1.5rem;
+    align-items:center;
+  }
+
+  .card {
+    width:90%; max-width:900px;
+    background: rgba(255,255,255,0.08);
+    border-radius:18px;
+    padding:28px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+    display:flex; align-items:center; gap:20px; justify-content:space-between;
+  }
+
+  .coin-left {
+    display:flex; gap:18px; align-items:center;
+  }
+
+  .coin-icon {
+    width:92px; height:92px; border-radius:18px;
+    display:grid; place-items:center; background: linear-gradient(180deg,#ffd24d,#ffb547);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+    color: #311b00; font-size:44px;
+  }
+
+  .coin-info .label { font-size:0.95rem; color:rgba(255,255,255,0.9); }
+  .coin-info .value {
+    font-size:3.2rem; font-weight:800; letter-spacing:1px;
+    margin-top:6px;
+  }
+
+  .meta {
+    color: rgba(255,255,255,0.85); font-size:0.95rem;
+  }
+
+  .small-btn {
+    background: rgba(255,255,255,0.12);
+    padding:0.6rem 0.9rem; border-radius:10px; cursor:pointer; border:none; color:#fff; font-weight:600;
+  }
+  .small-btn:hover { background: rgba(255,255,255,0.22); }
+
+  .loading { color: rgba(255,255,255,0.8); font-size:0.95rem; }
+
+  @media (max-width:700px){
+    .card { flex-direction:column; text-align:center; }
+    .coin-left { flex-direction:column; }
+  }
+</style>
+</head>
+<body>
+  <header>
+    <span class="menu-btn material-icons" id="menuToggle">menu</span>
+    <h1 class="title">TimeSphere</h1>
+    <div class="right">
+      <div class="clock" id="clock">--:--:--</div>
+      <button class="logout-btn" id="logoutBtn">Logout</button>
+    </div>
+  </header>
+
+  <nav id="sideMenu">
+    <a href="/home/dashboard/"><span class="material-icons">home</span>Dashboard</a>
+    <a href="/home/dashboard/users/"><span class="material-icons">group</span>Users</a>
+    <a href="/home/dashboard/groups/"><span class="material-icons">groups</span>Groups</a>
+    <a href="/home/dashboard/create/"><span class="material-icons">add_circle</span>Create</a>
+    <a href="/home/dashboard/user-storage/"><span class="material-icons">storage</span>Storage</a>
+    <a href="/home/dashboard/coins/" aria-current="page"><span class="material-icons">paid</span>Coins</a>
+    <a href="/home/dashboard/quests-and-rewards/"><span class="material-icons">emoji_events</span>Quests</a>
+    <a href="/home/dashboard/settings/"><span class="material-icons">settings</span>Settings</a>
+  </nav>
+  <div id="menuOverlay"></div>
+
+  <main>
+    <div class="card" id="coinsCard">
+      <div class="coin-left">
+        <div class="coin-icon" aria-hidden="true">
+          <span class="material-icons">paid</span>
+        </div>
+        <div class="coin-info">
+          <div class="label">Your Sphere Coins</div>
+          <div class="value" id="coinsValue">—</div>
+          <div class="meta" id="coinMeta">Loading…</div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px;align-items:center;">
+        <button class="small-btn" id="openWalletBtn">Open Wallet</button>
+        <button class="small-btn" id="getMoreBtn">Get more coins</button>
+      </div>
+    </div>
+
+    <div style="width:90%;max-width:900px;">
+      <div class="card" id="historyCard" style="flex-direction:column;align-items:flex-start;">
+        <div style="display:flex;justify-content:space-between;align-items:center;width:100%;">
+          <div style="font-weight:700;font-size:1.1rem;">Recent coin activity</div>
+          <div class="small loading" id="historyStatus">Nothing yet</div>
+        </div>
+        <div id="historyList" style="margin-top:12px;width:100%"></div>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+    import { getFirestore, doc, onSnapshot, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
+
+    // firebase config - taki jak miałeś
+    const firebaseConfig = {
+      apiKey: "AIzaSyBiGzil9wA3CXZWxWjHsn7iKPkiYQozQW8",
+      authDomain: "timesphere-9f7e0.firebaseapp.com",
+      projectId: "timesphere-9f7e0",
+      storageBucket: "timesphere-9f7e0.appspot.com",
+      messagingSenderId: "94629610195",
+      appId: "1:94629610195:web:a037e5c5aa0c5ba7e50a26"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    // header clock Europe/London
+    function updateHeaderClock(){
+      const now = new Date();
+      const options = { hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit', timeZone:'Europe/London' };
+      document.getElementById('clock').textContent = new Intl.DateTimeFormat('en-GB', options).format(now);
+    }
+    setInterval(updateHeaderClock, 1000);
+    updateHeaderClock();
+
+    // menu toggle
+    const sideMenu = document.getElementById('sideMenu');
+    const overlay = document.getElementById('menuOverlay');
+    document.getElementById('menuToggle').addEventListener('click', ()=>{ sideMenu.classList.add('open'); overlay.classList.add('show'); });
+    overlay.addEventListener('click', ()=>{ sideMenu.classList.remove('open'); overlay.classList.remove('show'); });
+
+    // logout button
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      try { await signOut(auth); } catch(e) { /* ignore */ }
+      window.location.href = '/login/index.html';
+    });
+
+    // helper: animate number from start->end (ms duration)
+    function animateNumber(el, start, end, duration=700){
+      const startTime = performance.now();
+      function tick(now){
+        const t = Math.min(1, (now - startTime) / duration);
+        const value = Math.floor(start + (end - start) * t);
+        el.textContent = value.toLocaleString();
+        if(t < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    }
+
+    // observe user's coins doc in user_coins/{uid}
+    let unsubscribeCoins = null;
+    let unsubscribeActivity = null;
+
+    onAuthStateChanged(auth, async (user) => {
+      if(!user){ window.location.href = '/login/index.html'; return; }
+      const uid = user.uid;
+
+      // coins doc
+      const coinsRef = doc(db, 'user_coins', uid);
+
+      // realtime listener for coins
+      if (unsubscribeCoins) unsubscribeCoins();
+      unsubscribeCoins = onSnapshot(coinsRef, (snap) => {
+        if(!snap.exists()){
+          // doc does not exist -> show 0
+          animateNumber(document.getElementById('coinsValue'), 0, 0);
+          document.getElementById('coinMeta').textContent = 'No coins yet';
+          return;
+        }
+        const data = snap.data();
+        const val = Number(data.SphereCoins) || 0;
+        // animate from current displayed value to new
+        const current = parseInt(document.getElementById('coinsValue').textContent.replace(/,/g,'')) || 0;
+        animateNumber(document.getElementById('coinsValue'), current, val, 700);
+        document.getElementById('coinMeta').textContent = `Updated: ${snap.updateTime ? snap.updateTime.toDate().toLocaleString() : 'just now'}`;
+      }, (err) => {
+        console.error('coins onSnapshot error', err);
+        document.getElementById('coinMeta').textContent = 'Error loading coins';
+      });
+
+      // optional: show recent activity from collection user_coins/{uid}/history OR a separate collection 'coins_history'
+      // We'll try 'coins_history' collection with field uid==uid, alternative fallback: no history
+      try {
+        const histQuery = query(collection(db, 'coins_history'), where('uid','==', uid));
+        const histSnap = await getDocs(histQuery);
+        const historyList = document.getElementById('historyList');
+        historyList.innerHTML = '';
+        if(histSnap.empty){
+          document.getElementById('historyStatus').textContent = 'No recent activity';
+        } else {
+          document.getElementById('historyStatus').textContent = '';
+          histSnap.docs.slice().reverse().slice(0,10).forEach(docSnap => {
+            const d = docSnap.data();
+            const row = document.createElement('div');
+            row.style.padding = '8px 0';
+            row.style.borderBottom = '1px solid rgba(255,255,255,0.04)';
+            row.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center">
+              <div style="font-weight:600">${d.title || 'Activity'}</div>
+              <div style="color:rgba(255,255,255,0.7)">${d.amount>0?'+':''}${d.amount || 0}</div>
+            </div>
+            <div style="color:rgba(255,255,255,0.75);font-size:0.9rem;margin-top:6px">${d.note || ''} • ${d.createdAt ? (new Date(d.createdAt.seconds*1000)).toLocaleString() : ''}</div>`;
+            historyList.appendChild(row);
+          });
+        }
+      } catch(e){
+        console.warn('No coins history or error reading it', e);
+        document.getElementById('historyStatus').textContent = 'No history available';
+      }
+
+    }); // end onAuthStateChanged
+
+    // wallet buttons (dummy redirects — adapt to your pages)
+    document.getElementById('openWalletBtn').addEventListener('click', ()=>{ window.location.href='/home/dashboard/coins/wallet.html'; });
+    document.getElementById('getMoreBtn').addEventListener('click', ()=>{ window.location.href='/home/dashboard/coins/buy.html'; });
+
+  </script>
+</body>
+  </html>
