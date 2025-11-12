@@ -250,30 +250,33 @@ async function computeEstimatedUsedForUid(uid){
     { key:'group', size: GROUP_BASE }
   ];
   let total = 0;
-  for(const col of collections){
-    const q = query(collection(db, col.key), where('ownerUid','==', uid));
-    const snap = await getDocs(q);
-    if(snap.empty) continue;
-    for(const ds of snap.docs){
-      if(col.key !== 'group'){
-        total += col.size;
-      } else {
-        // group: base + posts chars
-        let groupSize = GROUP_BASE;
-        try {
-          const postsQ = query(collection(db,'post_group'), where('group','==', ds.id));
-          const postsSnap = await getDocs(postsQ);
-          if(!postsSnap.empty){
-            postsSnap.forEach(p => {
-              const pd = p.data();
-              const text = pd.text || '';
-              groupSize += (text.length * MB_PER_CHAR_IN_POST);
-            });
-          }
-        } catch(e){ console.error('posts fetch error', e); }
-        total += groupSize;
-      }
+  for (const col of collections) {
+  // Dla group używamy pola "owner", reszta "ownerUid"
+  const ownerField = (col.key === 'group') ? 'owner' : 'ownerUid';
+  const q = query(collection(db, col.key), where(ownerField, '==', uid));
+  const snap = await getDocs(q);
+  if (snap.empty) continue;
+
+  for (const ds of snap.docs) {
+    if (col.key !== 'group') {
+      total += col.size;
+    } else {
+      // group: base + posty (każdy znak = 0.01MB)
+      let groupSize = GROUP_BASE;
+      try {
+        const postsQ = query(collection(db, 'post_group'), where('group', '==', ds.id));
+        const postsSnap = await getDocs(postsQ);
+        if (!postsSnap.empty) {
+          postsSnap.forEach(p => {
+            const pd = p.data();
+            const text = pd.text || '';
+            groupSize += (text.length * MB_PER_CHAR_IN_POST);
+          });
+        }
+      } catch (e) { console.error('posts fetch error', e); }
+      total += groupSize;
     }
+  }
   }
   return Number(total.toFixed(4));
 }
