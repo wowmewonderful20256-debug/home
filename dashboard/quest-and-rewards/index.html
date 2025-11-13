@@ -402,6 +402,9 @@ onAuthStateChanged(auth, async (user) => {
   // ensure coins doc exists (user experience)
   await ensureCoinsDoc(currentUid);
 
+  // ✅ ensure all quest documents exist before loading
+  await ensureQuestsExist();
+
   // load quests and render
   await loadAndRenderQuests(currentUid);
 
