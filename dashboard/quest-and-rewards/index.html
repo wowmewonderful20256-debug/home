@@ -154,6 +154,7 @@ import {
   collection, getDocs, query, where, runTransaction, increment, onSnapshot
 } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
+import { doc, getDoc, setDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBiGzil9wA3CXZWxWjHsn7iKPkiYQozQW8",
@@ -635,6 +636,37 @@ async function loadDailyUI(uid){
   }
 }
 
+  // ✅ Safe daily reward claim — bez błędu transakcji
+async function claimDailyReward(uid, rewardValue) {
+  try {
+    const rewardRef = doc(db, 'user_coins', uid);
+    const snap = await getDoc(rewardRef);
+
+    if (!snap.exists()) {
+      // tworzy nowy dokument z coinami
+      await setDoc(rewardRef, { SphereCoins: rewardValue });
+      console.log(`✅ Created new wallet for ${uid}, added ${rewardValue} coins`);
+    } else {
+      // zwiększa istniejącą liczbę coinów
+      await updateDoc(rewardRef, {
+        SphereCoins: increment(rewardValue)
+      });
+      console.log(`💰 Added ${rewardValue} coins to ${uid}`);
+    }
+
+    // zapisuje ostatni dzień odbioru
+    const userRef = doc(db, 'daily_rewards', uid);
+    await setDoc(userRef, {
+      lastClaim: new Date().toISOString()
+    }, { merge: true });
+
+    alert(`🎉 You received ${rewardValue} coins! Come back tomorrow for more.`);
+  } catch (e) {
+    console.error("❌ Could not claim daily reward:", e);
+    alert("⚠️ Error claiming reward. Try again later.");
+  }
+  }
+  
 </script>
 </body>
 </html>
