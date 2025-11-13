@@ -423,25 +423,46 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 // load quests from 'quests' collection for the requested ids
-async function loadAndRenderQuests(uid){
-  questsGrid.innerHTML = '<div class="muted">Loading quests…</div>';
+async function loadAndRenderQuests(uid) {
+  console.log("🟡 loadAndRenderQuests() start for", uid);
+
+  const questsGrid = document.getElementById("questsGrid");
+  if (!questsGrid) {
+    console.error("❌ questsGrid element not found in DOM!");
+    return;
+  }
+
   try {
-    // fetch all docs that match the preset QUEST_IDS (if they exist)
-    const quests = [];
-    for(const id of QUEST_IDS){
-      const qRef = doc(db,'quests', id);
-      const qSnap = await getDoc(qRef);
-      if(qSnap.exists()){
-        const data = qSnap.data();
-        // expected quest doc fields (defaults applied if missing):
-        // { title, type: 'daily'|'weekly', total: number, reward: number, unlockCost: number (optional), availableUids: [] }
-        quests.push({ id, ...data });
-      } else {
-        // fallback create a light local entry so UI shows something (not writing to DB)
-        quests.push({ id, title: id, type:'daily', total:1, reward:10, unlockCost: null, availableUids: [] });
-      }
+    const qSnap = await getDocs(collection(db, "quests"));
+    console.log("📦 Fetched quests:", qSnap.size);
+
+    questsGrid.innerHTML = "";
+
+    if (qSnap.empty) {
+      questsGrid.innerHTML = "<p>No quests found.</p>";
+      console.warn("⚠️ No quests found in Firestore!");
+      return;
     }
 
+    for (const q of qSnap.docs) {
+      const data = q.data();
+      console.log("🎯 Rendering quest:", data.id, data);
+
+      const div = document.createElement("div");
+      div.className = "questBox";
+      div.innerHTML = `
+        <h3>${data.title}</h3>
+        <p>Reward: ${data.reward} coins</p>
+        <p>Type: ${data.type || "?"}</p>
+      `;
+      questsGrid.appendChild(div);
+    }
+
+    console.log("🟢 loadAndRenderQuests() done");
+  } catch (err) {
+    console.error("❌ loadAndRenderQuests error", err);
+  }
+}
     // shuffle and pick DAILY_SHOW
     const shuffled = quests.sort(()=>Math.random()-0.5);
     const chosen = shuffled.slice(0,DAILY_SHOW);
