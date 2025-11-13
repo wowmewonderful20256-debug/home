@@ -574,26 +574,45 @@ async function loadDailyUI(uid){
   claimDailyBtn.textContent = 'Claim Daily Reward';
 
   // on click
-  claimDailyBtn.onclick = async ()=>{
-    try {
-      // re-fetch inside click to avoid race
-      const s = await getDoc(drRef);
-      let curDay = 0;
-      let last = null;
-      if(s.exists()){
-        curDay = Number(s.data().dayNumber || 0);
-        last = s.data().lastClaimed ? s.data().lastClaimed.toDate?.() || new Date(s.data().lastClaimed) : null;
+claimDailyBtn.onclick = async () => {
+  try {
+    const s = await getDoc(drRef);
+    let curDay = 0;
+    let last = null;
+    if (s.exists()) {
+      curDay = Number(s.data().dayNumber || 0);
+      last = s.data().lastClaimed ? s.data().lastClaimed.toDate?.() || new Date(s.data().lastClaimed) : null;
+    }
+    const now = new Date();
+    if (last) {
+      const diffMs = now - last;
+      if (diffMs < 24 * 3600 * 1000) {
+        const remain = formatMsToHMS(24 * 3600 * 1000 - diffMs);
+        return alert('You can claim next daily reward in: ' + remain);
       }
-      const now = new Date();
-      // check 24h cooldown since last claim
-      if(last){
-        const diffMs = now - last;
-        if(diffMs < (24*3600*1000)){
-          const remain = formatMsToHMS(24*3600*1000 - diffMs);
-          return alert('You can claim next daily reward in: ' + remain);
-        }
-      }
-      // check reset behavior: if last more than 48h -> reset to day1
+    }
+
+    let nextDay = 1;
+    if (last && (now - last) <= 48 * 3600 * 1000) {
+      nextDay = Math.min(DAILY_MAX_DAYS, (curDay || 0) + 1);
+    }
+
+    const coinsToGive = DAILY_REWARDS[nextDay - 1] || DAILY_REWARDS[DAILY_REWARDS.length - 1];
+
+    // ✅ Teraz zamiast transakcji używamy bezpiecznej funkcji
+    await claimDailyReward(uid, coinsToGive);
+
+    // Aktualizacja dnia nagrody
+    await setDoc(drRef, { dayNumber: nextDay, lastClaimed: new Date() }, { merge: true });
+
+    alert(`🎉 You received ${coinsToGive} coins for Day #${nextDay}!`);
+    await loadDailyUI(uid);
+  } catch (err) {
+    console.error('claim daily error', err);
+    alert('Could not claim daily reward: ' + (err.message || err));
+  }
+};
+  // check reset behavior: if last more than 48h -> reset to day1
       let nextDay = 1;
       if(last && (now - last) <= (48*3600*1000)){
         // allow increment
