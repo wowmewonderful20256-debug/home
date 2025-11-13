@@ -612,41 +612,7 @@ claimDailyBtn.onclick = async () => {
     alert('Could not claim daily reward: ' + (err.message || err));
   }
 };
-  // check reset behavior: if last more than 48h -> reset to day1
-      let nextDay = 1;
-      if(last && (now - last) <= (48*3600*1000)){
-        // allow increment
-        nextDay = Math.min(DAILY_MAX_DAYS, (curDay||0) + 1);
-      } else {
-        nextDay = 1;
-      }
-      // award coins for nextDay
-      const coinsToGive = DAILY_REWARDS[nextDay-1] || DAILY_REWARDS[DAILY_REWARDS.length-1];
-      // transaction: update daily_rewards and add coins
-      await runTransaction(db, async (tx) => {
-        const drS = await tx.get(drRef);
-        if(!drS.exists()){
-          tx.set(drRef, { dayNumber: nextDay, lastClaimed: new Date() });
-        } else {
-          tx.update(drRef, { dayNumber: nextDay, lastClaimed: new Date() });
-        }
-        // add coins
-        const coinsRef = doc(db,'user_coins', uid);
-        const cs = await tx.get(coinsRef);
-        if(!cs.exists()){
-          tx.set(coinsRef, { SphereCoins: coinsToGive });
-        } else {
-          tx.update(coinsRef, { SphereCoins: increment(coinsToGive) });
-        }
-      });
-      alert(`You received ${coinsToGive} coins for Day #${nextDay}!`);
-      // refresh UI
-      await loadDailyUI(uid);
-    } catch(err){
-      console.error('claim daily error', err);
-      alert('Could not claim daily reward: ' + (err.message || err));
-    }
-  };
+  
 
   // if user already claimed today -> disable (we detect by lastClaim within 24h)
   if(lastClaim && (new Date() - lastClaim) < (24*3600*1000)) {
