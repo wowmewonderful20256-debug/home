@@ -191,36 +191,44 @@ overlay.addEventListener('click', ()=>{ sideMenu.classList.remove('open'); overl
 document.getElementById('logoutBtn').addEventListener('click', async () => { try{ await signOut(auth); }catch{} window.location.href='/login/index.html'; });
 
   // --- Quest generator (run once if missing) ---
+// --- Robust ensureQuestsExist (replace previous implementation) ---
 async function ensureQuestsExist() {
   const questTemplates = [
-    { id: "Create clock", total: 1, reward: 15 },
-    { id: "Create Countdown", total: 1, reward: 15 },
-    { id: "Create Time", total: 1, reward: 15 },
-    { id: "Create 3 Clocks", total: 3, reward: 40 },
-    { id: "Edit Clock", total: 1, reward: 20 },
-    { id: "Edit Countdown", total: 1, reward: 20 },
-    { id: "Share Countdown", total: 1, reward: 30 },
-    { id: "Create Group", total: 1, reward: 50 },
-    { id: "Account Lenght 10 Days", total: 10, reward: 160 }
+    { id: "Create clock", title: "Create clock", total: 1, reward: 15, unlockCost: null, type: "daily" },
+    { id: "Create Countdown", title: "Create Countdown", total: 1, reward: 15, unlockCost: null, type: "daily" },
+    { id: "Create Time", title: "Create Time", total: 1, reward: 15, unlockCost: null, type: "daily" },
+    { id: "Create 3 Clocks", title: "Create 3 Clocks", total: 3, reward: 40, unlockCost: null, type: "weekly" },
+    { id: "Edit Clock", title: "Edit Clock", total: 1, reward: 20, unlockCost: null, type: "daily" },
+    { id: "Edit Countdown", title: "Edit Countdown", total: 1, reward: 20, unlockCost: null, type: "daily" },
+    { id: "Share Countdown", title: "Share Countdown", total: 1, reward: 30, unlockCost: null, type: "daily" },
+    { id: "Create Group", title: "Create Group", total: 1, reward: 50, unlockCost: null, type: "daily" },
+    { id: "Account Length 10 Days", title: "Account Length 10 Days", total: 10, reward: 160, unlockCost: null, type: "weekly" }
   ];
 
-  for (const quest of questTemplates) {
-    const ref = doc(db, "quests", quest.id);
-    const snap = await getDoc(ref);
-    if (!snap.exists()) {
-      await setDoc(ref, {
-        name: quest.id,
-        progress: 0,
-        total: quest.total,
-        reward: quest.reward,
-        questAvailableInUids: [], // lista uidów, którzy mają aktywny quest
-        type: quest.id.includes("Create") ? "daily" : "weekly", // automatyczny typ
-        createdAt: new Date().toISOString()
-      });
-      console.log(`✅ Created missing quest: ${quest.id}`);
+  for (const qt of questTemplates) {
+    try {
+      const ref = doc(db, "quests", qt.id);
+      const snap = await getDoc(ref);
+      if (!snap.exists()) {
+        // create with clear, consistent fields
+        await setDoc(ref, {
+          id: qt.id,
+          title: qt.title,
+          total: qt.total,
+          reward: qt.reward,
+          unlockCost: qt.unlockCost || null,
+          availableUids: [],   // who has this quest available (empty = open)
+          availableAll: false, // optionally mark public quests
+          type: qt.type || "daily",
+          createdAt: new Date().toISOString()
+        });
+        console.log(`✅ Created missing quest doc: ${qt.id}`);
+      }
+    } catch (err) {
+      console.error(`❌ Failed to ensure quest ${qt.id}:`, err);
     }
   }
-  }
+}
   
 // --- Config & helpers ---
 const QUEST_IDS = [
