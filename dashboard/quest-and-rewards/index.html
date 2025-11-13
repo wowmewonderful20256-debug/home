@@ -165,6 +165,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
 
+/* ---------------- Firebase init (keep your config) ---------------- */
 const firebaseConfig = {
   apiKey: "AIzaSyBiGzil9wA3CXZWxWjHsn7iKPkiYQozQW8",
   authDomain: "timesphere-9f7e0.firebaseapp.com",
@@ -177,58 +178,121 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-  
-// header clock Europe/London
+/* ---------------- header clock, menu, logout (preserved) ---------------- */
 function updateHeaderClock(){
   const now = new Date();
   try {
     const options = { hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit', timeZone:'Europe/London' };
-    document.getElementById('clock').textContent = new Intl.DateTimeFormat('en-GB', options).format(now);
+    const el = document.getElementById('clock');
+    if(el) el.textContent = new Intl.DateTimeFormat('en-GB', options).format(now);
   } catch(e){
-    document.getElementById('clock').textContent = now.toLocaleTimeString('en-GB', {hour12:false});
+    const el = document.getElementById('clock');
+    if(el) el.textContent = now.toLocaleTimeString('en-GB', {hour12:false});
   }
 }
 setInterval(updateHeaderClock,1000);
 updateHeaderClock();
 
-// menu toggle
 const sideMenu = document.getElementById('sideMenu');
 const overlay = document.getElementById('menuOverlay');
-document.getElementById('menuToggle').addEventListener('click', ()=>{ sideMenu.classList.add('open'); overlay.classList.add('show'); });
-overlay.addEventListener('click', ()=>{ sideMenu.classList.remove('open'); overlay.classList.remove('show'); });
-
-// logout
-document.getElementById('logoutBtn').addEventListener('click', async () => { try{ await signOut(auth); }catch{} window.location.href='/login/index.html'; });
-
-/* ---------- Quest system: cleaned, robust, with page-visible debug logs ---------- */
-// helper: log to console + small debug area on page
-function logDebug(...args){
-  console.log(...args);
-  try {
-    let dbg = document.getElementById('debugLog');
-    if(!dbg){
-      dbg = document.createElement('pre');
-      dbg.id = 'debugLog';
-      dbg.style.position = 'fixed';
-      dbg.style.right = '8px';
-      dbg.style.bottom = '8px';
-      dbg.style.maxHeight = '200px';
-      dbg.style.overflow = 'auto';
-      dbg.style.background = 'rgba(0,0,0,0.6)';
-      dbg.style.color = '#fff';
-      dbg.style.padding = '8px';
-      dbg.style.borderRadius = '8px';
-      dbg.style.fontSize = '12px';
-      dbg.style.zIndex = '9999';
-      document.body.appendChild(dbg);
-    }
-    dbg.textContent += args.map(a => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ') + '\n';
-    // keep last 2000 chars
-    if(dbg.textContent.length > 2000) dbg.textContent = dbg.textContent.slice(-2000);
-  } catch(e){}
+const menuToggleBtn = document.getElementById('menuToggle');
+if(menuToggleBtn && sideMenu && overlay){
+  menuToggleBtn.addEventListener('click', ()=>{ sideMenu.classList.add('open'); overlay.classList.add('show'); sideMenu.setAttribute('aria-hidden','false'); });
+  overlay.addEventListener('click', ()=>{ sideMenu.classList.remove('open'); overlay.classList.remove('show'); sideMenu.setAttribute('aria-hidden','true'); });
+}
+const logoutBtn = document.getElementById('logoutBtn');
+if(logoutBtn){
+  logoutBtn.addEventListener('click', async () => { try{ await signOut(auth); }catch{} window.location.href='/login/index.html'; });
 }
 
-// --- Quest generator (run once if missing) ---
+/* ---------------- Small page debug area + console override (safe) ---------------- */
+function _createDebugPanel(){
+  try{
+    if(document.getElementById('debugLog')) return;
+    const dbg = document.createElement('pre');
+    dbg.id = 'debugLog';
+    dbg.style.position = 'fixed';
+    dbg.style.right = '8px';
+    dbg.style.bottom = '8px';
+    dbg.style.maxWidth = '360px';
+    dbg.style.maxHeight = '220px';
+    dbg.style.overflow = 'auto';
+    dbg.style.background = 'rgba(0,0,0,0.6)';
+    dbg.style.color = '#fff';
+    dbg.style.padding = '8px';
+    dbg.style.borderRadius = '8px';
+    dbg.style.fontSize = '12px';
+    dbg.style.zIndex = '9999';
+    dbg.style.whiteSpace = 'pre-wrap';
+    document.body.appendChild(dbg);
+  }catch(e){}
+}
+function logDebug(...args){
+  try{
+    console.log(...args);
+    _createDebugPanel();
+    const dbg = document.getElementById('debugLog');
+    if(!dbg) return;
+    const text = args.map(a => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ');
+    dbg.textContent += text + '\n';
+    if(dbg.textContent.length > 4000) dbg.textContent = dbg.textContent.slice(-4000);
+    dbg.scrollTop = dbg.scrollHeight;
+  }catch(e){}
+}
+
+/* ---------------- Helpers & config ---------------- */
+const QUEST_IDS = [
+  "Create clock","Create Countdown","Create Time","Create 3 Clocks",
+  "Edit Clock","Edit Countdown","Share Countdown","Create Group","Account Length 10 Days"
+];
+const DAILY_SHOW = 5;
+const DAILY_REWARDS = [25,45,80,130,250];
+const DAILY_MAX_DAYS = 5;
+function pad(n){ return String(n).padStart(2,'0'); }
+function formatMsToHMS(ms){
+  if(ms<=0) return "00:00:00";
+  const s = Math.floor(ms/1000);
+  const hh = Math.floor(s/3600);
+  const mm = Math.floor((s%3600)/60);
+  const ss = s%60;
+  return `${pad(hh)}:${pad(mm)}:${pad(ss)}`;
+}
+function msUntilLondonMidnight(){
+  // compute remaining seconds in Europe/London day by Intl parts
+  try{
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Europe/London', hour12:false,
+      year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit'
+    }).formatToParts(new Date());
+    const map = {};
+    for(const p of parts) if(p.type !== 'literal') map[p.type] = p.value;
+    const hour = Number(map.hour), minute = Number(map.minute), second = Number(map.second);
+    const secondsPassed = hour*3600 + minute*60 + second;
+    const secondsToMidnight = 24*3600 - secondsPassed;
+    return secondsToMidnight * 1000;
+  }catch(e){
+    // fallback: use local midnight approx
+    const now = new Date();
+    const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate()+1);
+    return tomorrow - now;
+  }
+}
+function escapeHtml(s){
+  return String(s || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+function safeId(s){ return encodeURIComponent(String(s)).replace(/[%]/g,'_'); }
+
+/* ---------------- Firestore helpers ---------------- */
+async function ensureCoinsDoc(uid){
+  const ref = doc(db,'user_coins', uid);
+  const snap = await getDoc(ref);
+  if(!snap.exists()){
+    await setDoc(ref, { SphereCoins: 0 });
+    return 0;
+  }
+  return Number(snap.data()?.SphereCoins || 0);
+}
+
 async function ensureQuestsExist(){
   logDebug('🟡 ensureQuestsExist() start');
   const questTemplates = [
@@ -266,58 +330,10 @@ async function ensureQuestsExist(){
       }
     } catch(err){
       console.error('ensureQuestsExist error', err);
-      logDebug('❌ ensureQuestsExist error', err.message || err);
+      logDebug('❌ ensureQuestsExist error', (err && err.message) || err);
     }
   }
   logDebug('🟢 ensureQuestsExist() done');
-}
-
-// --- Config & small helpers ---
-const QUEST_IDS = [
-  "Create clock","Create Countdown","Create Time","Create 3 Clocks",
-  "Edit Clock","Edit Countdown","Share Countdown","Create Group","Account Length 10 Days"
-];
-const DAILY_SHOW = 5;
-const DAILY_REWARDS = [25,45,80,130,250];
-const DAILY_MAX_DAYS = 5;
-function pad(n){ return String(n).padStart(2,'0'); }
-function formatMsToHMS(ms){
-  if(ms<=0) return "00:00:00";
-  const s = Math.floor(ms/1000);
-  const hh = Math.floor(s/3600);
-  const mm = Math.floor((s%3600)/60);
-  const ss = s%60;
-  return `${pad(hh)}:${pad(mm)}:${pad(ss)}`;
-}
-function msUntilLondonMidnight(){
-  // compute remaining seconds in Europe/London day reliably by using Intl parts
-  const parts = new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'Europe/London', hour12:false,
-    year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit'
-  }).formatToParts(new Date());
-  const map = {};
-  for(const p of parts) if(p.type !== 'literal') map[p.type] = p.value;
-  const hour = Number(map.hour), minute = Number(map.minute), second = Number(map.second);
-  const secondsPassed = hour*3600 + minute*60 + second;
-  const secondsToMidnight = 24*3600 - secondsPassed;
-  return secondsToMidnight * 1000;
-}
-
-// escape small HTML for titles
-function escapeHtml(s){
-  return String(s || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-}
-function safeId(s){ return encodeURIComponent(String(s)).replace(/[%]/g,'_'); }
-
-// ---- Firestore helpers (use existing imports: doc, getDoc, setDoc, updateDoc, getDocs, collection, runTransaction, increment, arrayUnion, onSnapshot) ----
-async function ensureCoinsDoc(uid){
-  const ref = doc(db,'user_coins', uid);
-  const snap = await getDoc(ref);
-  if(!snap.exists()){
-    await setDoc(ref, { SphereCoins: 0 });
-    return 0;
-  }
-  return Number(snap.data()?.SphereCoins || 0);
 }
 
 async function getUserQuestProgress(uid, questId){
@@ -346,12 +362,12 @@ async function spendCoins(uid, amount){
     return res.ok === true;
   } catch(e){
     console.error('spendCoins error', e);
-    logDebug('spendCoins error', e.message || e);
+    logDebug('spendCoins error', (e && e.message) || e);
     return false;
   }
 }
 
-// Claim quest reward: use transaction but READ all docs first inside tx, THEN WRITE (keeps Firestore happy)
+// Claim quest reward: read-then-write pattern inside transaction
 async function claimQuestReward(uid, questId, reward){
   const uqRef = doc(db,'user_quests', `${uid}_${questId}`);
   const coinsRef = doc(db,'user_coins', uid);
@@ -360,12 +376,11 @@ async function claimQuestReward(uid, questId, reward){
       const uqSnap = await tx.get(uqRef);
       const coinsSnap = await tx.get(coinsRef);
 
-      // check claimed
       if(uqSnap.exists()){
         const data = uqSnap.data();
         if(data.claimed) throw new Error('Already claimed');
       }
-      // writes
+
       if(!uqSnap.exists()){
         tx.set(uqRef, { uid, questId, doneCount: 0, total: 0, claimed: true, claimedAt: new Date() });
       } else {
@@ -383,19 +398,18 @@ async function claimQuestReward(uid, questId, reward){
     return true;
   } catch(err){
     console.error('claimQuestReward error', err);
-    logDebug('❌ claimQuestReward error', err.message || err);
+    logDebug('❌ claimQuestReward error', (err && err.message) || err);
     throw err;
   }
 }
 
-// unlock quest for user (spend + add uid)
 async function unlockQuestForUser(uid, questId, cost){
   const ok = await spendCoins(uid, cost);
   if(!ok) throw new Error('Insufficient coins');
   await updateDoc(doc(db,'quests', questId), { availableUids: arrayUnion(uid) });
 }
 
-// ----------------- Main UI: load & render quests -----------------
+/* ---------------- Render quests UI ---------------- */
 async function loadAndRenderQuests(uid){
   logDebug('🟡 loadAndRenderQuests start for', uid);
   const questsGrid = document.getElementById('questsGrid');
@@ -405,18 +419,15 @@ async function loadAndRenderQuests(uid){
   }
   questsGrid.innerHTML = "<div class='muted'>Loading quests…</div>";
   try{
-    // ensure quests collection exists (we already called ensureQuestsExist earlier)
     const qSnap = await getDocs(collection(db,'quests'));
     logDebug('📦 fetched quests count:', qSnap.size);
-
     if(qSnap.empty){
       questsGrid.innerHTML = "<div class='muted'>No quests available.</div>";
       return;
     }
 
-    // build array then shuffle & choose
     const all = qSnap.docs.map(d => ({ id: d.id, ...(d.data()||{}) }));
-    // shuffle
+    // shuffle (Fisher-Yates)
     for(let i = all.length - 1; i > 0; i--){
       const j = Math.floor(Math.random() * (i + 1));
       [all[i], all[j]] = [all[j], all[i]];
@@ -433,12 +444,10 @@ async function loadAndRenderQuests(uid){
       const availableUids = Array.isArray(q.availableUids) ? q.availableUids : [];
       const availableAll = !!q.availableAll;
 
-      // get user progress
       const progress = await getUserQuestProgress(uid, qid);
       const done = Number(progress.doneCount || 0);
       const claimed = Boolean(progress.claimed);
 
-      // create card
       const card = document.createElement('div');
       card.className = 'quest-card';
       card.style.padding = '12px';
@@ -461,16 +470,13 @@ async function loadAndRenderQuests(uid){
       `;
 
       const actions = card.querySelector('.quest-actions');
-
       const isAvailable = availableAll || (availableUids.length === 0) || availableUids.includes(uid);
 
       if(!isAvailable){
-        // locked UI
         const locked = document.createElement('div');
         locked.innerHTML = `<div class="muted">Locked — Unlock for: <strong>${unlockCost !== null ? unlockCost : '?'}</strong> coins</div>
           <div style="margin-top:6px"><button class="btn" id="unlock-${safeId(qid)}">Unlock</button></div>`;
         actions.appendChild(locked);
-
         const unlockBtn = locked.querySelector(`#unlock-${safeId(qid)}`);
         unlockBtn?.addEventListener('click', async () => {
           try{
@@ -510,7 +516,6 @@ async function loadAndRenderQuests(uid){
         }
       }
 
-      // uptime timer
       const uptimeEl = card.querySelector(`#quest-${safeId(qid)}-uptime`);
       if(uptimeEl){
         const updateUptime = () => { uptimeEl.textContent = 'Update quest in: ' + formatMsToHMS(msUntilLondonMidnight()); };
@@ -524,12 +529,12 @@ async function loadAndRenderQuests(uid){
     logDebug('🟢 loadAndRenderQuests done, rendered:', chosen.length);
   } catch(err){
     console.error('loadAndRenderQuests error', err);
-    logDebug('❌ loadAndRenderQuests error', err.message || err);
+    logDebug('❌ loadAndRenderQuests error', (err && err.message) || err);
     if(questsGrid) questsGrid.innerHTML = "<div class='muted'>Error loading quests.</div>";
   }
 }
 
-// ----------------- Daily reward UI (clean safe claim) -----------------
+/* ---------------- Daily reward UI ---------------- */
 async function loadDailyUI(uid){
   try{
     const drRef = doc(db,'daily_rewards', uid);
@@ -550,7 +555,6 @@ async function loadDailyUI(uid){
       lastClaim = d.lastClaimed ? (d.lastClaimed.toDate ? d.lastClaimed.toDate() : new Date(d.lastClaimed)) : null;
     }
 
-    // render day pills
     dailyBox.innerHTML = '';
     for(let i=1;i<=DAILY_MAX_DAYS;i++){
       const pill = document.createElement('div');
@@ -564,14 +568,11 @@ async function loadDailyUI(uid){
     }
 
     dailyStatus.textContent = lastClaim ? ('Last claimed: ' + lastClaim.toLocaleString()) : 'You have not claimed any daily reward yet.';
-    // enable button by default
     claimDailyBtn.disabled = false;
     claimDailyBtn.textContent = 'Claim Daily Reward';
 
-    // click handler
     claimDailyBtn.onclick = async () => {
       try{
-        // re-read
         const snap = await getDoc(drRef);
         let curDay = 0;
         let last = null;
@@ -587,7 +588,7 @@ async function loadDailyUI(uid){
             return alert('You can claim next daily reward in: ' + remain);
           }
         }
-        // determine nextDay
+
         let nextDay = 1;
         if(last && (now - last) <= (48*3600*1000)){
           nextDay = Math.min(DAILY_MAX_DAYS, (curDay || 0) + 1);
@@ -596,20 +597,17 @@ async function loadDailyUI(uid){
         }
         const coinsToGive = DAILY_REWARDS[nextDay-1] || DAILY_REWARDS[DAILY_REWARDS.length-1];
 
-        // use transaction to update both daily_rewards and user_coins (reads first)
         await runTransaction(db, async (tx) => {
           const drS = await tx.get(drRef);
           const coinsRef = doc(db,'user_coins', uid);
           const cs = await tx.get(coinsRef);
 
-          // update daily_rewards
           if(!drS.exists()){
             tx.set(drRef, { dayNumber: nextDay, lastClaimed: new Date() });
           } else {
             tx.update(drRef, { dayNumber: nextDay, lastClaimed: new Date() });
           }
 
-          // update coins
           if(!cs.exists()){
             tx.set(coinsRef, { SphereCoins: coinsToGive });
           } else {
@@ -619,15 +617,14 @@ async function loadDailyUI(uid){
         });
 
         alert(`You received ${coinsToGive} coins for Day #${nextDay}!`);
-        await loadDailyUI(uid); // refresh UI
+        await loadDailyUI(uid);
       } catch(err){
         console.error('claimDaily error', err);
-        logDebug('❌ claimDaily error', err.message || err);
+        logDebug('❌ claimDaily error', (err && err.message) || err);
         alert('Could not claim daily reward: ' + (err.message || err));
       }
     };
 
-    // disable if already claimed within 24h
     if(lastClaim && (new Date() - lastClaim) < (24*3600*1000)) {
       claimDailyBtn.disabled = true;
       claimDailyBtn.textContent = 'Already claimed (wait 24h)';
@@ -635,22 +632,23 @@ async function loadDailyUI(uid){
 
   } catch(err){
     console.error('loadDailyUI error', err);
-    logDebug('❌ loadDailyUI error', err.message || err);
+    logDebug('❌ loadDailyUI error', (err && err.message) || err);
   }
 }
 
-// ----------------- Wire up onAuthStateChanged and init flow -----------------
+/* ---------------- Initialization on auth ---------------- */
 onAuthStateChanged(auth, async (user) => {
   if(!user){ window.location.href = '/login/index.html'; return; }
   const uid = user.uid;
   logDebug('onAuthStateChanged -> uid', uid);
 
   try{
-    await ensureCoinsDoc(uid);         // ensure wallet exists for better UX
-    await ensureQuestsExist();        // ensure quests exist (creates missing docs)
-    await loadAndRenderQuests(uid);   // render UI
-    await loadDailyUI(uid);           // daily reward UI
-    // subscribe to coins changes (optional)
+    await ensureCoinsDoc(uid);
+    await ensureQuestsExist();
+    await loadAndRenderQuests(uid);
+    await loadDailyUI(uid);
+
+    // listen to coins for UI debug
     const coinsRef = doc(db,'user_coins', uid);
     onSnapshot(coinsRef, snap => {
       const v = Number(snap?.data()?.SphereCoins || 0);
@@ -658,72 +656,37 @@ onAuthStateChanged(auth, async (user) => {
     });
   } catch(err){
     console.error('Init flow error', err);
-    logDebug('❌ Init flow error', err.message || err);
+    logDebug('❌ Init flow error', (err && err.message) || err);
   }
 });
 
-  
-
-  // if user already claimed today -> disable (we detect by lastClaim within 24h)
-  if(lastClaim && (new Date() - lastClaim) < (24*3600*1000)) {
-    claimDailyBtn.disabled = true;
-    claimDailyBtn.textContent = 'Already claimed (wait 24h)';
-  }
-}
-
-  // ✅ Safe daily reward claim — bez błędu transakcji
-async function claimDailyReward(uid, rewardValue) {
-  try {
-    const rewardRef = doc(db, 'user_coins', uid);
-    const snap = await getDoc(rewardRef);
-
-    if (!snap.exists()) {
-      // tworzy nowy dokument z coinami
-      await setDoc(rewardRef, { SphereCoins: rewardValue });
-      console.log(`✅ Created new wallet for ${uid}, added ${rewardValue} coins`);
-    } else {
-      // zwiększa istniejącą liczbę coinów
-      await updateDoc(rewardRef, {
-        SphereCoins: increment(rewardValue)
-      });
-      console.log(`💰 Added ${rewardValue} coins to ${uid}`);
-    }
-
-    // zapisuje ostatni dzień odbioru
-    const userRef = doc(db, 'daily_rewards', uid);
-    await setDoc(userRef, {
-      lastClaim: new Date().toISOString()
-    }, { merge: true });
-
-    alert(`🎉 You received ${rewardValue} coins! Come back tomorrow for more.`);
-  } catch (e) {
-    console.error("❌ Could not claim daily reward:", e);
-    alert("⚠️ Error claiming reward. Try again later.");
-  }
-  }
-
-  
+/* ---------------- Lightweight console to on-page debug mapping (optional) ---------------- */
 (function(){
-  const div = document.getElementById('debugConsole');
-  function print(type, msg, color='#0f0'){
-    const el = document.createElement('div');
-    el.style.color = color;
-    el.textContent = `[${type}] ${msg}`;
-    div.appendChild(el);
-    div.scrollTop = div.scrollHeight;
-  }
-  const origLog = console.log;
-  const origErr = console.error;
-  console.log = (...args)=>{
-    origLog(...args);
-    print('LOG', args.map(a=>typeof a==='object'?JSON.stringify(a):a).join(' '));
-  };
-  console.error = (...args)=>{
-    origErr(...args);
-    print('ERR', args.map(a=>typeof a==='object'?JSON.stringify(a):a).join(' '), '#f55');
-  };
+  try{
+    const div = document.getElementById('debugConsole');
+    if(!div) return;
+    const origLog = console.log;
+    const origErr = console.error;
+    console.log = (...args)=>{
+      origLog(...args);
+      const msg = args.map(a=>typeof a==='object'?JSON.stringify(a):a).join(' ');
+      const el = document.createElement('div');
+      el.style.color = '#0f0';
+      el.textContent = `[LOG] ${msg}`;
+      div.appendChild(el);
+      div.scrollTop = div.scrollHeight;
+    };
+    console.error = (...args)=>{
+      origErr(...args);
+      const msg = args.map(a=>typeof a==='object'?JSON.stringify(a):a).join(' ');
+      const el = document.createElement('div');
+      el.style.color = '#f55';
+      el.textContent = `[ERR] ${msg}`;
+      div.appendChild(el);
+      div.scrollTop = div.scrollHeight;
+    };
+  }catch(e){}
 })();
-  
 </script>
 </body>
 </html>
