@@ -398,7 +398,149 @@ setInterval(()=> {
 },1000);
 
 // main loader
-onAuthStateChanged(auth, async (user) => {
+// ZASTĄP CAŁĄ DEFINICJĘ FUNKCJI loadAndRenderQuests  TYM BLOKIEM
+async function loadAndRenderQuests(uid) {
+  console.log("🟡 loadAndRenderQuests() start for", uid);
+
+  // Bezpieczne pobranie referencji DOM
+  const questsGrid = document.getElementById("questsGrid");
+  if (!questsGrid) {
+    console.error("❌ questsGrid element not found in DOM!");
+    return;
+  }
+
+  try {
+    // pobierz wszystkie dokumenty z kolekcji 'quests'
+    const qSnap = await getDocs(collection(db, "quests"));
+    console.log("📦 Fetched quests:", qSnap.size);
+
+    questsGrid.innerHTML = "";
+
+    if (qSnap.empty) {
+      questsGrid.innerHTML = "<div class='muted'>No quests found.</div>";
+      console.warn("⚠️ No quests found in Firestore!");
+      return;
+    }
+
+    // iteruj i renderuj karty
+    for (const qdoc of qSnap.docs) {
+      const qdata = qdoc.data();
+      const qid = qdoc.id;
+      console.log("🎯 Rendering quest:", qid, qdata);
+
+      // bezpieczne pola z fallbackami
+      const title = qdata.title || qdata.name || qid;
+      const total = Number(qdata.total || 1);
+      const reward = Number(qdata.reward || 0);
+      const unlockCost = qdata.unlockCost !== undefined ? Number(qdata.unlockCost) : null;
+      const availableUids = Array.isArray(qdata.availableUids) ? qdata.availableUids : [];
+      const availableAll = !!qdata.availableAll;
+
+      // pobierz postęp użytkownika dla tego questa
+      const progress = await getUserQuestProgress(uid, qid);
+      const done = Number(progress.doneCount || 0);
+      const claimed = Boolean(progress.claimed);
+
+      // utwórz kartę
+      const card = document.createElement("div");
+      card.className = "quest-card";
+      card.innerHTML = `
+        <div class="title"><span class="material-icons">task</span><div>${escapeHtml(title)}</div></div>
+        <div class="meta">Progress: <strong>${done}</strong> / ${total} — Reward: <strong>${reward}</strong> coins</div>
+        <div class="quest-progress"><div class="muted">${claimed?'<span style="color:#3ccf8e">✔ Done</span>':'In progress'}</div><div class="muted" id="quest-${encodeURIComponent(qid)}-uptime">Update quest in: --:--:--</div></div>
+        <div class="quest-actions"></div>
+      `;
+
+      const actions = card.querySelector(".quest-actions");
+
+      // czy quest jest dostępny dla użytkownika?
+      const isAvailable = availableAll || (availableUids.length === 0) || availableUids.includes(uid);
+
+      if (!isAvailable) {
+        // zablokowany quest: pokaż unlock (jeśli unlockCost istnieje)
+        const lockedDiv = document.createElement("div");
+        lockedDiv.className = "locked";
+        lockedDiv.innerHTML = `
+          <div>
+            <div class="txt">Locked</div>
+            <div class="muted" style="margin-top:8px">Unlock for: ${unlockCost !== null ? escapeHtml(String(unlockCost)) : "?"} coins</div>
+            <div style="margin-top:10px"><button class="btn" id="unlock-${escapeId(qid)}">Unlock</button></div>
+          </div>`;
+        card.appendChild(lockedDiv);
+
+        // attach handler (safe)
+        const unlockBtn = lockedDiv.querySelector(`#unlock-${escapeId(qid)}`);
+        if (unlockBtn) {
+          unlockBtn.addEventListener("click", async (ev) => {
+            try {
+              if (unlockCost === null) { alert("This quest cannot be unlocked"); return; }
+              const ok = await spendCoins(uid, unlockCost);
+              if (!ok) { alert("Not enough coins to unlock"); return; }
+              await updateDoc(doc(db, "quests", qid), { availableUids: arrayUnion(uid) });
+              alert("Quest unlocked!");
+              await loadAndRenderQuests(uid); // odśwież
+            } catch (err) {
+              console.error("unlock error", err);
+              alert("Error unlocking quest: " + (err.message || err));
+            }
+          });
+        }
+      } else {
+        // dostępny: pokaż claim jeśli gotowe
+        if (done >= total && !claimed) {
+          const claimBtn = document.createElement("button");
+          claimBtn.className = "claim-btn";
+          claimBtn.textContent = "Claim coins";
+          claimBtn.addEventListener("click", async () => {
+            try {
+              await claimQuestReward(uid, qid, reward);
+              alert("Claimed " + reward + " coins!");
+              await loadAndRenderQuests(uid);
+            } catch (err) {
+              console.error("claim error", err);
+              alert("Claim failed: " + (err.message || err));
+            }
+          });
+          actions.appendChild(claimBtn);
+        } else {
+          const rem = Math.max(0, total - done);
+          const infoBtn = document.createElement("button");
+          infoBtn.className = "btn";
+          infoBtn.textContent = (rem === 0 ? (claimed ? "Completed" : "Ready") : `Need ${rem}`);
+          infoBtn.disabled = true;
+          actions.appendChild(infoBtn);
+        }
+      }
+
+      // timer "Update quest in"
+      const uptimeEl = card.querySelector(`#quest-${encodeURIComponent(qid)}-uptime`);
+      if (uptimeEl) {
+        function updateUptime() {
+          const ms = msUntilLondonMidnight();
+          uptimeEl.textContent = formatMsToHMS(ms);
+        }
+        updateUptime();
+        setInterval(updateUptime, 1000);
+      }
+
+      questsGrid.appendChild(card);
+    } // koniec for
+
+    console.log("🟢 loadAndRenderQuests() done");
+  } catch (err) {
+    console.error("❌ loadAndRenderQuests error", err);
+    questsGrid.innerHTML = "<div class='muted'>Error loading quests.</div>";
+  }
+}
+
+// helper: prosty escape tekstu do wstawiania w innerHTML (tylko do tytułów)
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, function (m) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]; });
+}
+function escapeId(s){
+  return encodeURIComponent(s).replace(/[%]/g, '_');
+  }
+  onAuthStateChanged(auth, async (user) => {
   if(!user) { window.location.href = '/login/index.html'; return; }
   currentUid = user.uid;
 
@@ -423,46 +565,6 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 // load quests from 'quests' collection for the requested ids
-async function loadAndRenderQuests(uid) {
-  console.log("🟡 loadAndRenderQuests() start for", uid);
-
-  const questsGrid = document.getElementById("questsGrid");
-  if (!questsGrid) {
-    console.error("❌ questsGrid element not found in DOM!");
-    return;
-  }
-
-  try {
-    const qSnap = await getDocs(collection(db, "quests"));
-    console.log("📦 Fetched quests:", qSnap.size);
-
-    questsGrid.innerHTML = "";
-
-    if (qSnap.empty) {
-      questsGrid.innerHTML = "<p>No quests found.</p>";
-      console.warn("⚠️ No quests found in Firestore!");
-      return;
-    }
-
-    for (const q of qSnap.docs) {
-      const data = q.data();
-      console.log("🎯 Rendering quest:", data.id, data);
-
-      const div = document.createElement("div");
-      div.className = "questBox";
-      div.innerHTML = `
-        <h3>${data.title}</h3>
-        <p>Reward: ${data.reward} coins</p>
-        <p>Type: ${data.type || "?"}</p>
-      `;
-      questsGrid.appendChild(div);
-    }
-
-    console.log("🟢 loadAndRenderQuests() done");
-  } catch (err) {
-    console.error("❌ loadAndRenderQuests error", err);
-  }
-}
     // shuffle and pick DAILY_SHOW
     const shuffled = quests.sort(()=>Math.random()-0.5);
     const chosen = shuffled.slice(0,DAILY_SHOW);
