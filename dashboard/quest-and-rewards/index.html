@@ -200,76 +200,87 @@ overlay.addEventListener('click', ()=>{ sideMenu.classList.remove('open'); overl
 // logout
 document.getElementById('logoutBtn').addEventListener('click', async () => { try{ await signOut(auth); }catch{} window.location.href='/login/index.html'; });
 
-  // --- Quest generator (run once if missing) ---
-// --- Robust ensureQuestsExist (replace previous implementation) ---
-async function ensureQuestsExist() {
-  console.log("🟡 ensureQuestsExist() start");
+/* ---------- Quest system: cleaned, robust, with page-visible debug logs ---------- */
+// helper: log to console + small debug area on page
+function logDebug(...args){
+  console.log(...args);
+  try {
+    let dbg = document.getElementById('debugLog');
+    if(!dbg){
+      dbg = document.createElement('pre');
+      dbg.id = 'debugLog';
+      dbg.style.position = 'fixed';
+      dbg.style.right = '8px';
+      dbg.style.bottom = '8px';
+      dbg.style.maxHeight = '200px';
+      dbg.style.overflow = 'auto';
+      dbg.style.background = 'rgba(0,0,0,0.6)';
+      dbg.style.color = '#fff';
+      dbg.style.padding = '8px';
+      dbg.style.borderRadius = '8px';
+      dbg.style.fontSize = '12px';
+      dbg.style.zIndex = '9999';
+      document.body.appendChild(dbg);
+    }
+    dbg.textContent += args.map(a => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ') + '\n';
+    // keep last 2000 chars
+    if(dbg.textContent.length > 2000) dbg.textContent = dbg.textContent.slice(-2000);
+  } catch(e){}
+}
+
+// --- Quest generator (run once if missing) ---
+async function ensureQuestsExist(){
+  logDebug('🟡 ensureQuestsExist() start');
   const questTemplates = [
     { id: "Create clock", title: "Create clock", total: 1, reward: 15, type: "daily" },
     { id: "Create Countdown", title: "Create Countdown", total: 1, reward: 15, type: "daily" },
+    { id: "Create Time", title: "Create Time", total: 1, reward: 15, type: "daily" },
+    { id: "Create 3 Clocks", title: "Create 3 Clocks", total: 3, reward: 40, type: "weekly" },
+    { id: "Edit Clock", title: "Edit Clock", total: 1, reward: 20, type: "daily" },
+    { id: "Edit Countdown", title: "Edit Countdown", total: 1, reward: 20, type: "daily" },
+    { id: "Share Countdown", title: "Share Countdown", total: 1, reward: 30, type: "daily" },
+    { id: "Create Group", title: "Create Group", total: 1, reward: 50, type: "daily" },
     { id: "Account Length 10 Days", title: "Account Length 10 Days", total: 10, reward: 160, type: "weekly" }
   ];
 
-  for (const qt of questTemplates) {
-    try {
-      const ref = doc(db, "quests", qt.id);
+  for(const qt of questTemplates){
+    try{
+      const ref = doc(db,'quests', qt.id);
       const snap = await getDoc(ref);
-      if (!snap.exists()) {
-        console.log("Creating missing quest:", qt.id);
+      if(!snap.exists()){
+        logDebug('Creating missing quest doc:', qt.id);
         await setDoc(ref, {
-          ...qt,
-          availableUids: [],
+          id: qt.id,
+          title: qt.title,
+          total: qt.total,
+          reward: qt.reward,
+          unlockCost: qt.unlockCost !== undefined ? qt.unlockCost : null,
+          availableUids: [],    // empty = open to all
           availableAll: false,
+          type: qt.type || 'daily',
           createdAt: new Date().toISOString()
         });
-        console.log(`✅ Created missing quest doc: ${qt.id}`);
+        logDebug('✅ Created quest:', qt.id);
       } else {
-        console.log(`✅ Quest already exists: ${qt.id}`);
+        logDebug('✅ Quest exists:', qt.id);
       }
-    } catch (err) {
-      console.error(`❌ Failed to ensure quest ${qt.id}:`, err);
+    } catch(err){
+      console.error('ensureQuestsExist error', err);
+      logDebug('❌ ensureQuestsExist error', err.message || err);
     }
   }
-  console.log("🟢 ensureQuestsExist() done");
+  logDebug('🟢 ensureQuestsExist() done');
 }
-  
-// --- Config & helpers ---
+
+// --- Config & small helpers ---
 const QUEST_IDS = [
   "Create clock","Create Countdown","Create Time","Create 3 Clocks",
-  "Edit Clock","Edit Countdown","Share Countdown","Edit Clock (dup)",
-  "Create Group","Account Length 10 Days"
+  "Edit Clock","Edit Countdown","Share Countdown","Create Group","Account Length 10 Days"
 ];
-// daily display count
 const DAILY_SHOW = 5;
-
-// reward mapping for daily reward
-const DAILY_REWARDS = [25,45,80,130,250]; // day1..final
+const DAILY_REWARDS = [25,45,80,130,250];
 const DAILY_MAX_DAYS = 5;
-
-// helper format time HH:MM:SS
 function pad(n){ return String(n).padStart(2,'0'); }
-
-// compute ms until next midnight Europe/London
-function msUntilLondonMidnight(){
-  // get current time parts in Europe/London
-  const parts = new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'Europe/London', hour12:false,
-    year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit'
-  }).formatToParts(new Date());
-  const map = {};
-  for(const p of parts) if(p.type!=='literal') map[p.type] = p.value;
-  // build a Date object for the London date at 00:00 next day, but we need its epoch in system UTC
-  // We'll create a Date using the London parts as if UTC, then compute difference between that midnight and current London time in ms.
-  const year = Number(map.year), month = Number(map.month)-1, day = Number(map.day);
-  const hour = Number(map.hour), minute = Number(map.minute), second = Number(map.second);
-  // current London time as Date (approx): build a Date from the same components but interpret as local by creating string and parsing with timezone option
-  const now = new Date();
-  // compute remaining seconds today in London:
-  const secondsPassed = hour*3600 + minute*60 + second;
-  const secondsToMidnight = 24*3600 - secondsPassed;
-  return secondsToMidnight*1000;
-}
-
 function formatMsToHMS(ms){
   if(ms<=0) return "00:00:00";
   const s = Math.floor(ms/1000);
@@ -278,20 +289,27 @@ function formatMsToHMS(ms){
   const ss = s%60;
   return `${pad(hh)}:${pad(mm)}:${pad(ss)}`;
 }
-
-// helper to animate small number changes (coins)
-function animateNumberText(el, start, end, duration=600){
-  const st = performance.now();
-  function tick(now){
-    const t = Math.min(1,(now-st)/duration);
-    const v = Math.floor(start + (end-start)*t);
-    el.textContent = v.toLocaleString();
-    if(t<1) requestAnimationFrame(tick);
-  }
-  requestAnimationFrame(tick);
+function msUntilLondonMidnight(){
+  // compute remaining seconds in Europe/London day reliably by using Intl parts
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/London', hour12:false,
+    year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit'
+  }).formatToParts(new Date());
+  const map = {};
+  for(const p of parts) if(p.type !== 'literal') map[p.type] = p.value;
+  const hour = Number(map.hour), minute = Number(map.minute), second = Number(map.second);
+  const secondsPassed = hour*3600 + minute*60 + second;
+  const secondsToMidnight = 24*3600 - secondsPassed;
+  return secondsToMidnight * 1000;
 }
 
-// ensure user_coins/{uid} exists
+// escape small HTML for titles
+function escapeHtml(s){
+  return String(s || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+function safeId(s){ return encodeURIComponent(String(s)).replace(/[%]/g,'_'); }
+
+// ---- Firestore helpers (use existing imports: doc, getDoc, setDoc, updateDoc, getDocs, collection, runTransaction, increment, arrayUnion, onSnapshot) ----
 async function ensureCoinsDoc(uid){
   const ref = doc(db,'user_coins', uid);
   const snap = await getDoc(ref);
@@ -299,32 +317,25 @@ async function ensureCoinsDoc(uid){
     await setDoc(ref, { SphereCoins: 0 });
     return 0;
   }
-  return Number((snap.data().SphereCoins)||0);
+  return Number(snap.data()?.SphereCoins || 0);
 }
 
-// add coins (transaction)
-async function addCoins(uid, amount){
-  const ref = doc(db,'user_coins', uid);
-  await runTransaction(db, async (tx) => {
-    const s = await tx.get(ref);
-    if(!s.exists()){
-      tx.set(ref, { SphereCoins: amount });
-    } else {
-      tx.update(ref, { SphereCoins: increment(amount) });
-    }
-  });
+async function getUserQuestProgress(uid, questId){
+  const ref = doc(db,'user_quests', `${uid}_${questId}`);
+  const snap = await getDoc(ref);
+  if(!snap.exists()) return { doneCount:0, total:0, claimed:false };
+  return snap.data();
 }
 
-// subtract coins if possible (transaction) -> returns true on success, false if insufficient
 async function spendCoins(uid, amount){
   const ref = doc(db,'user_coins', uid);
-  try {
+  try{
     const res = await runTransaction(db, async (tx) => {
       const s = await tx.get(ref);
       let cur = 0;
       if(!s.exists()){
         cur = 0;
-        tx.set(ref, { SphereCoins: 0 }); // ensure doc
+        tx.set(ref, { SphereCoins: 0 });
       } else {
         cur = Number(s.data().SphereCoins || 0);
       }
@@ -334,421 +345,323 @@ async function spendCoins(uid, amount){
     });
     return res.ok === true;
   } catch(e){
-    console.error('spendCoins tx error', e);
+    console.error('spendCoins error', e);
+    logDebug('spendCoins error', e.message || e);
     return false;
   }
 }
 
-// Claim quest reward: update user_quests doc and add coins
+// Claim quest reward: use transaction but READ all docs first inside tx, THEN WRITE (keeps Firestore happy)
 async function claimQuestReward(uid, questId, reward){
   const uqRef = doc(db,'user_quests', `${uid}_${questId}`);
-  await runTransaction(db, async (tx) => {
-    const s = await tx.get(uqRef);
-    if(!s.exists()){
-      tx.set(uqRef, { uid, questId, doneCount: 0, total: 0, claimed:true, claimedAt: new Date() });
-    } else {
-      const data = s.data();
-      if(data.claimed) throw new Error('Already claimed');
-      tx.update(uqRef, { claimed: true, claimedAt: new Date() });
-    }
-    // add coins to user_coins
-    const coinsRef = doc(db,'user_coins', uid);
-    const cs = await tx.get(coinsRef);
-    if(!cs.exists()){
-      tx.set(coinsRef, { SphereCoins: reward });
-    } else {
-      const cur = Number(cs.data().SphereCoins || 0);
-      tx.update(coinsRef, { SphereCoins: Number((cur + reward).toFixed(0)) });
-    }
-  });
+  const coinsRef = doc(db,'user_coins', uid);
+  try{
+    await runTransaction(db, async (tx) => {
+      const uqSnap = await tx.get(uqRef);
+      const coinsSnap = await tx.get(coinsRef);
+
+      // check claimed
+      if(uqSnap.exists()){
+        const data = uqSnap.data();
+        if(data.claimed) throw new Error('Already claimed');
+      }
+      // writes
+      if(!uqSnap.exists()){
+        tx.set(uqRef, { uid, questId, doneCount: 0, total: 0, claimed: true, claimedAt: new Date() });
+      } else {
+        tx.update(uqRef, { claimed: true, claimedAt: new Date() });
+      }
+
+      if(!coinsSnap.exists()){
+        tx.set(coinsRef, { SphereCoins: reward });
+      } else {
+        const cur = Number(coinsSnap.data().SphereCoins || 0);
+        tx.update(coinsRef, { SphereCoins: Number((cur + reward).toFixed(0)) });
+      }
+    });
+    logDebug('✅ claimQuestReward success', uid, questId, reward);
+    return true;
+  } catch(err){
+    console.error('claimQuestReward error', err);
+    logDebug('❌ claimQuestReward error', err.message || err);
+    throw err;
+  }
 }
 
-// unlock quest for user by paying cost and push uid into quest.availableUids array
+// unlock quest for user (spend + add uid)
 async function unlockQuestForUser(uid, questId, cost){
-  // spend coins first
   const ok = await spendCoins(uid, cost);
-  if(!ok) throw new Error('Insufficient coins to unlock');
-  const qRef = doc(db,'quests', questId);
-  await updateDoc(qRef, { availableUids: arrayUnion(uid) });
+  if(!ok) throw new Error('Insufficient coins');
+  await updateDoc(doc(db,'quests', questId), { availableUids: arrayUnion(uid) });
 }
 
-// get user progress doc (fallbacks if missing)
-async function getUserQuestProgress(uid, questId){
-  const ref = doc(db,'user_quests', `${uid}_${questId}`);
-  const snap = await getDoc(ref);
-  if(!snap.exists()) return { doneCount:0, total:0, claimed:false };
-  return snap.data();
-}
-
-// ---------- UI & main flow ----------
-const questsGrid = document.getElementById('questsGrid');
-const resetTimerEl = document.getElementById('resetTimer');
-const claimDailyBtn = document.getElementById('claimDailyBtn');
-const dailyBox = document.getElementById('dailyBox');
-const dailyStatus = document.getElementById('dailyStatus');
-
-let currentUid = null;
-let coinsUnsub = null;
-let coinsValue = 0;
-
-// periodically update reset timer
-setInterval(()=> {
-  const ms = msUntilLondonMidnight();
-  resetTimerEl.textContent = 'Reset in: ' + formatMsToHMS(ms);
-},1000);
-
-// main loader
-// ZASTĄP CAŁĄ DEFINICJĘ FUNKCJI loadAndRenderQuests  TYM BLOKIEM
-async function loadAndRenderQuests(uid) {
-  console.log("🟡 loadAndRenderQuests() start for", uid);
-
-  // Bezpieczne pobranie referencji DOM
-  const questsGrid = document.getElementById("questsGrid");
-  if (!questsGrid) {
-    console.error("❌ questsGrid element not found in DOM!");
+// ----------------- Main UI: load & render quests -----------------
+async function loadAndRenderQuests(uid){
+  logDebug('🟡 loadAndRenderQuests start for', uid);
+  const questsGrid = document.getElementById('questsGrid');
+  if(!questsGrid){
+    logDebug('❌ questsGrid not found in DOM');
     return;
   }
+  questsGrid.innerHTML = "<div class='muted'>Loading quests…</div>";
+  try{
+    // ensure quests collection exists (we already called ensureQuestsExist earlier)
+    const qSnap = await getDocs(collection(db,'quests'));
+    logDebug('📦 fetched quests count:', qSnap.size);
 
-  try {
-    // pobierz wszystkie dokumenty z kolekcji 'quests'
-    const qSnap = await getDocs(collection(db, "quests"));
-    console.log("📦 Fetched quests:", qSnap.size);
-
-    questsGrid.innerHTML = "";
-
-    if (qSnap.empty) {
-      questsGrid.innerHTML = "<div class='muted'>No quests found.</div>";
-      console.warn("⚠️ No quests found in Firestore!");
+    if(qSnap.empty){
+      questsGrid.innerHTML = "<div class='muted'>No quests available.</div>";
       return;
     }
 
-    // iteruj i renderuj karty
-    for (const qdoc of qSnap.docs) {
-      const qdata = qdoc.data();
-      const qid = qdoc.id;
-      console.log("🎯 Rendering quest:", qid, qdata);
+    // build array then shuffle & choose
+    const all = qSnap.docs.map(d => ({ id: d.id, ...(d.data()||{}) }));
+    // shuffle
+    for(let i = all.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [all[i], all[j]] = [all[j], all[i]];
+    }
+    const chosen = all.slice(0, Math.min(DAILY_SHOW, all.length));
 
-      // bezpieczne pola z fallbackami
-      const title = qdata.title || qdata.name || qid;
-      const total = Number(qdata.total || 1);
-      const reward = Number(qdata.reward || 0);
-      const unlockCost = qdata.unlockCost !== undefined ? Number(qdata.unlockCost) : null;
-      const availableUids = Array.isArray(qdata.availableUids) ? qdata.availableUids : [];
-      const availableAll = !!qdata.availableAll;
+    questsGrid.innerHTML = '';
+    for(const q of chosen){
+      const qid = q.id;
+      const title = q.title || q.name || qid;
+      const total = Number(q.total || 1);
+      const reward = Number(q.reward || 0);
+      const unlockCost = (q.unlockCost !== undefined ? Number(q.unlockCost) : null);
+      const availableUids = Array.isArray(q.availableUids) ? q.availableUids : [];
+      const availableAll = !!q.availableAll;
 
-      // pobierz postęp użytkownika dla tego questa
+      // get user progress
       const progress = await getUserQuestProgress(uid, qid);
       const done = Number(progress.doneCount || 0);
       const claimed = Boolean(progress.claimed);
 
-      // utwórz kartę
-      const card = document.createElement("div");
-      card.className = "quest-card";
-      card.innerHTML = `
-        <div class="title"><span class="material-icons">task</span><div>${escapeHtml(title)}</div></div>
-        <div class="meta">Progress: <strong>${done}</strong> / ${total} — Reward: <strong>${reward}</strong> coins</div>
-        <div class="quest-progress"><div class="muted">${claimed?'<span style="color:#3ccf8e">✔ Done</span>':'In progress'}</div><div class="muted" id="quest-${encodeURIComponent(qid)}-uptime">Update quest in: --:--:--</div></div>
-        <div class="quest-actions"></div>
-      `;
-
-      const actions = card.querySelector(".quest-actions");
-
-      // czy quest jest dostępny dla użytkownika?
-      const isAvailable = availableAll || (availableUids.length === 0) || availableUids.includes(uid);
-
-      if (!isAvailable) {
-        // zablokowany quest: pokaż unlock (jeśli unlockCost istnieje)
-        const lockedDiv = document.createElement("div");
-        lockedDiv.className = "locked";
-        lockedDiv.innerHTML = `
-          <div>
-            <div class="txt">Locked</div>
-            <div class="muted" style="margin-top:8px">Unlock for: ${unlockCost !== null ? escapeHtml(String(unlockCost)) : "?"} coins</div>
-            <div style="margin-top:10px"><button class="btn" id="unlock-${escapeId(qid)}">Unlock</button></div>
-          </div>`;
-        card.appendChild(lockedDiv);
-
-        // attach handler (safe)
-        const unlockBtn = lockedDiv.querySelector(`#unlock-${escapeId(qid)}`);
-        if (unlockBtn) {
-          unlockBtn.addEventListener("click", async (ev) => {
-            try {
-              if (unlockCost === null) { alert("This quest cannot be unlocked"); return; }
-              const ok = await spendCoins(uid, unlockCost);
-              if (!ok) { alert("Not enough coins to unlock"); return; }
-              await updateDoc(doc(db, "quests", qid), { availableUids: arrayUnion(uid) });
-              alert("Quest unlocked!");
-              await loadAndRenderQuests(uid); // odśwież
-            } catch (err) {
-              console.error("unlock error", err);
-              alert("Error unlocking quest: " + (err.message || err));
-            }
-          });
-        }
-      } else {
-        // dostępny: pokaż claim jeśli gotowe
-        if (done >= total && !claimed) {
-          const claimBtn = document.createElement("button");
-          claimBtn.className = "claim-btn";
-          claimBtn.textContent = "Claim coins";
-          claimBtn.addEventListener("click", async () => {
-            try {
-              await claimQuestReward(uid, qid, reward);
-              alert("Claimed " + reward + " coins!");
-              await loadAndRenderQuests(uid);
-            } catch (err) {
-              console.error("claim error", err);
-              alert("Claim failed: " + (err.message || err));
-            }
-          });
-          actions.appendChild(claimBtn);
-        } else {
-          const rem = Math.max(0, total - done);
-          const infoBtn = document.createElement("button");
-          infoBtn.className = "btn";
-          infoBtn.textContent = (rem === 0 ? (claimed ? "Completed" : "Ready") : `Need ${rem}`);
-          infoBtn.disabled = true;
-          actions.appendChild(infoBtn);
-        }
-      }
-
-      // timer "Update quest in"
-      const uptimeEl = card.querySelector(`#quest-${encodeURIComponent(qid)}-uptime`);
-      if (uptimeEl) {
-        function updateUptime() {
-          const ms = msUntilLondonMidnight();
-          uptimeEl.textContent = formatMsToHMS(ms);
-        }
-        updateUptime();
-        setInterval(updateUptime, 1000);
-      }
-
-      questsGrid.appendChild(card);
-    } // koniec for
-
-    console.log("🟢 loadAndRenderQuests() done");
-  } catch (err) {
-    console.error("❌ loadAndRenderQuests error", err);
-    questsGrid.innerHTML = "<div class='muted'>Error loading quests.</div>";
-  }
-}
-
-// helper: prosty escape tekstu do wstawiania w innerHTML (tylko do tytułów)
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, function (m) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]; });
-}
-function escapeId(s){
-  return encodeURIComponent(s).replace(/[%]/g, '_');
-  }
-  onAuthStateChanged(auth, async (user) => {
-  if(!user) { window.location.href = '/login/index.html'; return; }
-  currentUid = user.uid;
-
-  // ensure coins doc exists (user experience)
-  await ensureCoinsDoc(currentUid);
-
-  // ✅ ensure all quest documents exist before loading
-  await ensureQuestsExist();
-
-  // load quests and render
-  await loadAndRenderQuests(currentUid);
-
-  // load daily reward UI
-  await loadDailyUI(currentUid);
-
-  // listen to coin changes for UI if you want (optional)
-  const coinsRef = doc(db,'user_coins',currentUid);
-  if(coinsUnsub) coinsUnsub();
-  coinsUnsub = onSnapshot(coinsRef, snap => {
-    coinsValue = Number((snap?.data()?.SphereCoins)||0);
-  });
-});
-
-// load quests from 'quests' collection for the requested ids
-    // shuffle and pick DAILY_SHOW
-    const shuffled = quests.sort(()=>Math.random()-0.5);
-    const chosen = shuffled.slice(0,DAILY_SHOW);
-
-    // render chosen quests
-    questsGrid.innerHTML = '';
-    for(const q of chosen){
+      // create card
       const card = document.createElement('div');
       card.className = 'quest-card';
-      const title = q.title || q.id;
-      const total = Number(q.total || 1);
-      const reward = Number(q.reward || 0);
-      const unlockCost = (q.unlockCost!==undefined) ? Number(q.unlockCost) : null;
-      const availableUids = Array.isArray(q.availableUids) ? q.availableUids : [];
+      card.style.padding = '12px';
+      card.style.marginBottom = '10px';
+      card.style.background = 'rgba(255,255,255,0.03)';
+      card.style.borderRadius = '10px';
 
-      // get user progress
-      const progress = await getUserQuestProgress(uid, q.id);
-      const done = Number(progress.doneCount || 0);
-      const claimed = Boolean(progress.claimed);
-
-      // card inner HTML
       card.innerHTML = `
-        <div class="title"><span class="material-icons">task</span><div>${title}</div></div>
-        <div class="meta">Progress: <strong>${done}</strong> / ${total} — Reward: <strong>${reward}</strong> coins</div>
-        <div class="quest-progress"><div class="muted">${claimed?'<span style="color:#3ccf8e">✔ Done</span>':'In progress'}</div><div class="muted" id="quest-${q.id}-uptime">Update quest in: --:--:--</div></div>
-        <div class="quest-actions"></div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <span class="material-icons">task</span>
+          <div style="flex:1">
+            <div style="font-weight:700">${escapeHtml(title)}</div>
+            <div class="muted">Progress: <strong>${done}</strong> / ${total} — Reward: <strong>${reward}</strong> coins</div>
+          </div>
+        </div>
+        <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center">
+          <div class="muted" id="quest-${safeId(qid)}-uptime">Update quest in: --:--:--</div>
+          <div class="quest-actions"></div>
+        </div>
       `;
 
-      // actions area
       const actions = card.querySelector('.quest-actions');
 
-      // is available for the user? it is available if availableUids includes uid OR availableUids is empty (open) OR q.availableAll === true
-      const isAvailable = (!Array.isArray(availableUids) || availableUids.length===0) || availableUids.includes(uid) || q.availableAll === true;
+      const isAvailable = availableAll || (availableUids.length === 0) || availableUids.includes(uid);
 
       if(!isAvailable){
-        // locked overlay with unlock cost display (if unlockCost exists)
-        const lockedDiv = document.createElement('div');
-        lockedDiv.className = 'locked';
-        lockedDiv.innerHTML = `<div>
-          <div class="txt">Locked</div>
-          <div class="muted" style="margin-top:8px">Unlock for: ${unlockCost!==null?unlockCost:'?'} coins</div>
-          <div style="margin-top:10px"><button class="btn" id="unlock-${q.id}">Unlock</button></div>
-        </div>`;
-        card.appendChild(lockedDiv);
+        // locked UI
+        const locked = document.createElement('div');
+        locked.innerHTML = `<div class="muted">Locked — Unlock for: <strong>${unlockCost !== null ? unlockCost : '?'}</strong> coins</div>
+          <div style="margin-top:6px"><button class="btn" id="unlock-${safeId(qid)}">Unlock</button></div>`;
+        actions.appendChild(locked);
 
-        // unlock button handler
-        lockedDiv.querySelector(`#unlock-${q.id}`).addEventListener('click', async (ev) => {
-          try {
-            if(unlockCost===null){ alert('This quest cannot be unlocked'); return; }
+        const unlockBtn = locked.querySelector(`#unlock-${safeId(qid)}`);
+        unlockBtn?.addEventListener('click', async () => {
+          try{
+            if(unlockCost === null){ alert('This quest cannot be unlocked'); return; }
             const ok = await spendCoins(uid, unlockCost);
-            if(!ok){ alert('Not enough coins to unlock'); return; }
-            await updateDoc(doc(db,'quests',q.id), { availableUids: arrayUnion(uid) });
+            if(!ok){ alert('Not enough coins'); return; }
+            await updateDoc(doc(db,'quests', qid), { availableUids: arrayUnion(uid) });
             alert('Quest unlocked!');
-            // re-render
             await loadAndRenderQuests(uid);
           } catch(err){
             console.error('unlock error', err);
-            alert('Error unlocking quest: '+ (err.message||err));
+            alert('Unlock failed: ' + (err.message || err));
           }
         });
       } else {
-        // show progress and possible claim
         if(done >= total && !claimed){
           const claimBtn = document.createElement('button');
           claimBtn.className = 'claim-btn';
           claimBtn.textContent = 'Claim coins';
           claimBtn.addEventListener('click', async ()=>{
-            try {
-              await claimQuestReward(uid, q.id, reward);
-              alert('Claimed ' + reward + ' coins!');
+            try{
+              await claimQuestReward(uid, qid, reward);
+              alert(`Claimed ${reward} coins!`);
               await loadAndRenderQuests(uid);
             } catch(err){
               console.error('claim error', err);
-              alert('Claim failed: ' + (err.message||err));
+              alert('Claim failed: ' + (err.message || err));
             }
           });
           actions.appendChild(claimBtn);
         } else {
-          // optionally a disabled button showing remaining
           const rem = Math.max(0, total - done);
-          const infoBtn = document.createElement('button');
-          infoBtn.className = 'btn';
-          infoBtn.textContent = (rem===0 ? (claimed ? 'Completed' : 'Ready') : `Need ${rem}`);
-          infoBtn.disabled = true;
-          actions.appendChild(infoBtn);
+          const info = document.createElement('div');
+          info.className = 'muted';
+          info.textContent = (rem === 0 ? (claimed ? 'Completed' : 'Ready') : `Need ${rem}`);
+          actions.appendChild(info);
         }
-
-        // small share / details icon as extra (nonfunctional placeholder)
-        const detailsBtn = document.createElement('button');
-        detailsBtn.className = 'btn';
-        detailsBtn.innerHTML = '<span class="material-icons">info</span>';
-        actions.appendChild(detailsBtn);
       }
 
-      // update timer for "Update quest in: " - we count to next midnight London
-      const uptimeEl = card.querySelector(`#quest-${q.id}-uptime`);
-      function updateUptime(){
-        const ms = msUntilLondonMidnight();
-        uptimeEl.textContent = formatMsToHMS(ms);
+      // uptime timer
+      const uptimeEl = card.querySelector(`#quest-${safeId(qid)}-uptime`);
+      if(uptimeEl){
+        const updateUptime = () => { uptimeEl.textContent = 'Update quest in: ' + formatMsToHMS(msUntilLondonMidnight()); };
+        updateUptime();
+        setInterval(updateUptime, 1000);
       }
-      updateUptime();
-      setInterval(updateUptime,1000);
 
       questsGrid.appendChild(card);
     }
-  } catch(e){
-    console.error('loadAndRenderQuests error', e);
-    questsGrid.innerHTML = '<div class="muted">Error loading quests.</div>';
+
+    logDebug('🟢 loadAndRenderQuests done, rendered:', chosen.length);
+  } catch(err){
+    console.error('loadAndRenderQuests error', err);
+    logDebug('❌ loadAndRenderQuests error', err.message || err);
+    if(questsGrid) questsGrid.innerHTML = "<div class='muted'>Error loading quests.</div>";
   }
 }
 
-// ----------------- Daily reward UI -----------------
+// ----------------- Daily reward UI (clean safe claim) -----------------
 async function loadDailyUI(uid){
-  // daily progress stored in doc daily_rewards/{uid}
-  const drRef = doc(db,'daily_rewards', uid);
-  const drSnap = await getDoc(drRef);
-  let day = 0;
-  let lastClaim = null;
-  if(drSnap.exists()){
-    const d = drSnap.data();
-    day = Number(d.dayNumber || 0);
-    lastClaim = d.lastClaimed ? d.lastClaimed.toDate?.() || new Date(d.lastClaimed) : null;
-  }
-
-  // build day pills
-  dailyBox.innerHTML = '';
-  for(let i=1;i<=DAILY_MAX_DAYS;i++){
-    const pill = document.createElement('div');
-    pill.className = 'day-pill' + (i===day ? ' active':'');
-    const val = DAILY_REWARDS[i-1] || DAILY_REWARDS[DAILY_REWARDS.length-1];
-    pill.textContent = `Day #${i}: ${val} coins`;
-    dailyBox.appendChild(pill);
-  }
-
-  // daily status
-  if(!lastClaim){
-    dailyStatus.textContent = 'You have not claimed any daily reward yet.';
-  } else {
-    dailyStatus.textContent = 'Last claimed: ' + lastClaim.toLocaleString();
-  }
-
-  // determine if claim button is enabled
-  claimDailyBtn.disabled = false;
-  claimDailyBtn.textContent = 'Claim Daily Reward';
-
-  // on click
-claimDailyBtn.onclick = async () => {
-  try {
-    const s = await getDoc(drRef);
-    let curDay = 0;
-    let last = null;
-    if (s.exists()) {
-      curDay = Number(s.data().dayNumber || 0);
-      last = s.data().lastClaimed ? s.data().lastClaimed.toDate?.() || new Date(s.data().lastClaimed) : null;
+  try{
+    const drRef = doc(db,'daily_rewards', uid);
+    const drSnap = await getDoc(drRef);
+    const dailyBox = document.getElementById('dailyBox');
+    const dailyStatus = document.getElementById('dailyStatus');
+    const claimDailyBtn = document.getElementById('claimDailyBtn');
+    if(!dailyBox || !dailyStatus || !claimDailyBtn) {
+      logDebug('Daily UI elements not found, skipping daily UI');
+      return;
     }
-    const now = new Date();
-    if (last) {
-      const diffMs = now - last;
-      if (diffMs < 24 * 3600 * 1000) {
-        const remain = formatMsToHMS(24 * 3600 * 1000 - diffMs);
-        return alert('You can claim next daily reward in: ' + remain);
+
+    let day = 0;
+    let lastClaim = null;
+    if(drSnap.exists()){
+      const d = drSnap.data();
+      day = Number(d.dayNumber || 0);
+      lastClaim = d.lastClaimed ? (d.lastClaimed.toDate ? d.lastClaimed.toDate() : new Date(d.lastClaimed)) : null;
+    }
+
+    // render day pills
+    dailyBox.innerHTML = '';
+    for(let i=1;i<=DAILY_MAX_DAYS;i++){
+      const pill = document.createElement('div');
+      pill.textContent = `Day #${i}: ${DAILY_REWARDS[i-1] || DAILY_REWARDS[DAILY_REWARDS.length-1]} coins`;
+      pill.style.padding = '6px';
+      pill.style.borderRadius = '8px';
+      pill.style.margin = '4px';
+      pill.style.display = 'inline-block';
+      if(i===day) pill.style.outline = '2px solid rgba(255,255,255,0.12)';
+      dailyBox.appendChild(pill);
+    }
+
+    dailyStatus.textContent = lastClaim ? ('Last claimed: ' + lastClaim.toLocaleString()) : 'You have not claimed any daily reward yet.';
+    // enable button by default
+    claimDailyBtn.disabled = false;
+    claimDailyBtn.textContent = 'Claim Daily Reward';
+
+    // click handler
+    claimDailyBtn.onclick = async () => {
+      try{
+        // re-read
+        const snap = await getDoc(drRef);
+        let curDay = 0;
+        let last = null;
+        if(snap.exists()){
+          curDay = Number(snap.data().dayNumber || 0);
+          last = snap.data().lastClaimed ? (snap.data().lastClaimed.toDate ? snap.data().lastClaimed.toDate() : new Date(snap.data().lastClaimed)) : null;
+        }
+        const now = new Date();
+        if(last){
+          const diff = now - last;
+          if(diff < 24*3600*1000){
+            const remain = formatMsToHMS(24*3600*1000 - diff);
+            return alert('You can claim next daily reward in: ' + remain);
+          }
+        }
+        // determine nextDay
+        let nextDay = 1;
+        if(last && (now - last) <= (48*3600*1000)){
+          nextDay = Math.min(DAILY_MAX_DAYS, (curDay || 0) + 1);
+        } else {
+          nextDay = 1;
+        }
+        const coinsToGive = DAILY_REWARDS[nextDay-1] || DAILY_REWARDS[DAILY_REWARDS.length-1];
+
+        // use transaction to update both daily_rewards and user_coins (reads first)
+        await runTransaction(db, async (tx) => {
+          const drS = await tx.get(drRef);
+          const coinsRef = doc(db,'user_coins', uid);
+          const cs = await tx.get(coinsRef);
+
+          // update daily_rewards
+          if(!drS.exists()){
+            tx.set(drRef, { dayNumber: nextDay, lastClaimed: new Date() });
+          } else {
+            tx.update(drRef, { dayNumber: nextDay, lastClaimed: new Date() });
+          }
+
+          // update coins
+          if(!cs.exists()){
+            tx.set(coinsRef, { SphereCoins: coinsToGive });
+          } else {
+            const cur = Number(cs.data().SphereCoins || 0);
+            tx.update(coinsRef, { SphereCoins: Number((cur + coinsToGive).toFixed(0)) });
+          }
+        });
+
+        alert(`You received ${coinsToGive} coins for Day #${nextDay}!`);
+        await loadDailyUI(uid); // refresh UI
+      } catch(err){
+        console.error('claimDaily error', err);
+        logDebug('❌ claimDaily error', err.message || err);
+        alert('Could not claim daily reward: ' + (err.message || err));
       }
+    };
+
+    // disable if already claimed within 24h
+    if(lastClaim && (new Date() - lastClaim) < (24*3600*1000)) {
+      claimDailyBtn.disabled = true;
+      claimDailyBtn.textContent = 'Already claimed (wait 24h)';
     }
 
-    let nextDay = 1;
-    if (last && (now - last) <= 48 * 3600 * 1000) {
-      nextDay = Math.min(DAILY_MAX_DAYS, (curDay || 0) + 1);
-    }
-
-    const coinsToGive = DAILY_REWARDS[nextDay - 1] || DAILY_REWARDS[DAILY_REWARDS.length - 1];
-
-    // ✅ Teraz zamiast transakcji używamy bezpiecznej funkcji
-    await claimDailyReward(uid, coinsToGive);
-
-    // Aktualizacja dnia nagrody
-    await setDoc(drRef, { dayNumber: nextDay, lastClaimed: new Date() }, { merge: true });
-
-    alert(`🎉 You received ${coinsToGive} coins for Day #${nextDay}!`);
-    await loadDailyUI(uid);
-  } catch (err) {
-    console.error('claim daily error', err);
-    alert('Could not claim daily reward: ' + (err.message || err));
+  } catch(err){
+    console.error('loadDailyUI error', err);
+    logDebug('❌ loadDailyUI error', err.message || err);
   }
-};
+}
+
+// ----------------- Wire up onAuthStateChanged and init flow -----------------
+onAuthStateChanged(auth, async (user) => {
+  if(!user){ window.location.href = '/login/index.html'; return; }
+  const uid = user.uid;
+  logDebug('onAuthStateChanged -> uid', uid);
+
+  try{
+    await ensureCoinsDoc(uid);         // ensure wallet exists for better UX
+    await ensureQuestsExist();        // ensure quests exist (creates missing docs)
+    await loadAndRenderQuests(uid);   // render UI
+    await loadDailyUI(uid);           // daily reward UI
+    // subscribe to coins changes (optional)
+    const coinsRef = doc(db,'user_coins', uid);
+    onSnapshot(coinsRef, snap => {
+      const v = Number(snap?.data()?.SphereCoins || 0);
+      logDebug('coins snapshot:', v);
+    });
+  } catch(err){
+    console.error('Init flow error', err);
+    logDebug('❌ Init flow error', err.message || err);
+  }
+});
+
   
 
   // if user already claimed today -> disable (we detect by lastClaim within 24h)
