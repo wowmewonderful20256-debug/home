@@ -144,6 +144,16 @@
         <button id="claimDailyBtn" class="claim-btn">Claim Daily Reward</button>
         <div class="muted" id="dailyStatus" style="margin-top:8px;">You haven't claimed yet.</div>
       </div>
+
+      <!-- 🔍 Debug console on page -->
+<div id="debugConsole" style="
+  position:fixed;bottom:0;left:0;right:0;
+  max-height:40vh;overflow:auto;
+  background:#111;color:#0f0;
+  font-family:monospace;font-size:12px;
+  padding:6px;border-top:2px solid #333;
+  z-index:9999;
+"></div>
     </section>
   </main>
 
@@ -193,16 +203,11 @@ document.getElementById('logoutBtn').addEventListener('click', async () => { try
   // --- Quest generator (run once if missing) ---
 // --- Robust ensureQuestsExist (replace previous implementation) ---
 async function ensureQuestsExist() {
+  console.log("🟡 ensureQuestsExist() start");
   const questTemplates = [
-    { id: "Create clock", title: "Create clock", total: 1, reward: 15, unlockCost: null, type: "daily" },
-    { id: "Create Countdown", title: "Create Countdown", total: 1, reward: 15, unlockCost: null, type: "daily" },
-    { id: "Create Time", title: "Create Time", total: 1, reward: 15, unlockCost: null, type: "daily" },
-    { id: "Create 3 Clocks", title: "Create 3 Clocks", total: 3, reward: 40, unlockCost: null, type: "weekly" },
-    { id: "Edit Clock", title: "Edit Clock", total: 1, reward: 20, unlockCost: null, type: "daily" },
-    { id: "Edit Countdown", title: "Edit Countdown", total: 1, reward: 20, unlockCost: null, type: "daily" },
-    { id: "Share Countdown", title: "Share Countdown", total: 1, reward: 30, unlockCost: null, type: "daily" },
-    { id: "Create Group", title: "Create Group", total: 1, reward: 50, unlockCost: null, type: "daily" },
-    { id: "Account Length 10 Days", title: "Account Length 10 Days", total: 10, reward: 160, unlockCost: null, type: "weekly" }
+    { id: "Create clock", title: "Create clock", total: 1, reward: 15, type: "daily" },
+    { id: "Create Countdown", title: "Create Countdown", total: 1, reward: 15, type: "daily" },
+    { id: "Account Length 10 Days", title: "Account Length 10 Days", total: 10, reward: 160, type: "weekly" }
   ];
 
   for (const qt of questTemplates) {
@@ -210,24 +215,22 @@ async function ensureQuestsExist() {
       const ref = doc(db, "quests", qt.id);
       const snap = await getDoc(ref);
       if (!snap.exists()) {
-        // create with clear, consistent fields
+        console.log("Creating missing quest:", qt.id);
         await setDoc(ref, {
-          id: qt.id,
-          title: qt.title,
-          total: qt.total,
-          reward: qt.reward,
-          unlockCost: qt.unlockCost || null,
-          availableUids: [],   // who has this quest available (empty = open)
-          availableAll: false, // optionally mark public quests
-          type: qt.type || "daily",
+          ...qt,
+          availableUids: [],
+          availableAll: false,
           createdAt: new Date().toISOString()
         });
         console.log(`✅ Created missing quest doc: ${qt.id}`);
+      } else {
+        console.log(`✅ Quest already exists: ${qt.id}`);
       }
     } catch (err) {
       console.error(`❌ Failed to ensure quest ${qt.id}:`, err);
     }
   }
+  console.log("🟢 ensureQuestsExist() done");
 }
   
 // --- Config & helpers ---
@@ -662,6 +665,28 @@ async function claimDailyReward(uid, rewardValue) {
     alert("⚠️ Error claiming reward. Try again later.");
   }
   }
+
+  
+(function(){
+  const div = document.getElementById('debugConsole');
+  function print(type, msg, color='#0f0'){
+    const el = document.createElement('div');
+    el.style.color = color;
+    el.textContent = `[${type}] ${msg}`;
+    div.appendChild(el);
+    div.scrollTop = div.scrollHeight;
+  }
+  const origLog = console.log;
+  const origErr = console.error;
+  console.log = (...args)=>{
+    origLog(...args);
+    print('LOG', args.map(a=>typeof a==='object'?JSON.stringify(a):a).join(' '));
+  };
+  console.error = (...args)=>{
+    origErr(...args);
+    print('ERR', args.map(a=>typeof a==='object'?JSON.stringify(a):a).join(' '), '#f55');
+  };
+})();
   
 </script>
 </body>
