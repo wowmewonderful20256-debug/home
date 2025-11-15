@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>TimeSphere | Changelog</title>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
+<style>
+  :root { --card-bg: rgba(255,255,255,0.08); --card-bg-2: rgba(255,255,255,0.12); --accent:#ff8a00; --accent-2:#e52e71; --muted: rgba(255,255,255,0.65); }
+  html,body{height:100%}
+  body { margin:0; font-family:'Poppins',sans-serif; background: linear-gradient(135deg,#5d54a4,#7c78b8); color:#fff; overflow-x:hidden;}
+  header { display:flex; justify-content:space-between; align-items:center; padding:1rem 2rem; background: rgba(255,255,255,0.1); backdrop-filter: blur(8px); position:fixed; width:100%; top:0; z-index:10; }
+  .menu-btn { font-size:2rem; cursor:pointer; transition: transform .3s; } .menu-btn:hover { transform:scale(1.06); }
+  .title { font-weight:600; font-size:1.4rem; }
+  .right { display:flex; align-items:center; gap:1rem; }
+  .clock, .logout-btn { font-weight:600; }
+  .logout-btn { cursor:pointer; background: rgba(255,255,255,0.15); padding:0.5rem 1rem; border-radius:8px; transition: background .2s; }
+  .logout-btn:hover { background: rgba(255,255,255,0.28); }
+
+  #sideMenu { position:fixed; top:0; left:-260px; width:260px; height:100%; background: rgba(0,0,0,0.32); backdrop-filter: blur(8px); padding-top:4rem; transition:left .35s; z-index:20; }
+  #sideMenu.open { left:0; }
+  #sideMenu a { display:flex; align-items:center; gap:1rem; padding:1rem 1.25rem; color:white; text-decoration:none; transition: background .18s; }
+  #sideMenu a:hover { background: rgba(255,255,255,0.06); }
+  #menuOverlay { display:none; position:fixed; inset:0; background: rgba(0,0,0,0.32); z-index:15; }
+  #menuOverlay.show { display:block; }
+
+  main { margin-top:90px; padding:2rem; display:flex; flex-direction:column; gap:1.5rem; align-items:center; min-height:calc(100vh - 90px); }
+  .container { width:90%; max-width:1100px; }
+  .card { width:100%; background:var(--card-bg); border-radius:18px; padding:20px; box-shadow: 0 8px 30px rgba(0,0,0,0.25); }
+
+  .heading { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
+  .heading h2 { margin:0; font-size:1.25rem; }
+
+  .tabs { display:flex; gap:8px; margin-bottom:14px; }
+  .tab {
+    display:flex; gap:8px; align-items:center;
+    padding:10px 12px; border-radius:12px; cursor:pointer;
+    background: transparent; color: #fff; border: 1px solid rgba(255,255,255,0.04);
+    transition: background .18s, color .18s;
+    text-decoration:none;
+  }
+  .tab .icon { font-size:18px; opacity:0.95; display:inline-flex; align-items:center; justify-content:center; }
+  .tab .txt { font-weight:600; }
+  .tab.active { background: linear-gradient(90deg,var(--accent),var(--accent-2)); color:#000; box-shadow: 0 8px 22px rgba(0,0,0,0.18); }
+
+  .back-btn {
+    display:inline-flex; align-items:center; gap:8px;
+    padding:8px 12px; border-radius:12px; cursor:pointer;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    color:#000; font-weight:700; text-decoration:none;
+    box-shadow: 0 8px 22px rgba(0,0,0,0.25);
+  }
+
+  /* grid of changelog cards */
+  .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:16px; margin-top:12px; }
+  .article-card {
+    display:block; border-radius:12px; overflow:hidden; text-decoration:none; color:inherit;
+    background: linear-gradient(180deg, rgba(0,0,0,0.04), rgba(0,0,0,0.02));
+    border: 1px solid rgba(255,255,255,0.03); transition: transform .15s, box-shadow .15s;
+  }
+  .article-card:hover { transform: translateY(-6px); box-shadow: 0 14px 40px rgba(0,0,0,0.35); }
+
+  .article-thumb { position:relative; height:150px; display:block; overflow:hidden; background:#111; }
+  .article-thumb img { width:100%; height:100%; object-fit:cover; display:block; filter: brightness(0.95); }
+  .article-title-overlay {
+    position:absolute; left:8px; right:8px; bottom:8px; padding:8px 10px; border-radius:8px;
+    background: linear-gradient(90deg, rgba(255,138,0,0.95), rgba(229,46,113,0.95));
+    color:#000; font-weight:700; font-size:0.95rem; display:flex; align-items:center; justify-content:center;
+    text-align:center;
+  }
+
+  .article-meta { padding:10px 12px; display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .article-date { color:var(--muted); font-weight:600; font-size:0.92rem; }
+  .article-open-btn {
+    padding:8px 10px; border-radius:10px; background: linear-gradient(90deg,#ffd24d,#ffd24d99);
+    color:#000; font-weight:700; text-decoration:none;
+  }
+
+  .muted { opacity:0.9; font-size:0.95rem; color:var(--muted); }
+
+  @media (max-width:700px){
+    .heading { flex-direction:column; align-items:flex-start; gap:8px; }
+  }
+</style>
+</head>
+<body>
+  <header>
+    <span class="menu-btn material-icons" id="menuToggle">menu</span>
+    <h1 class="title">TimeSphere</h1>
+    <div class="right">
+      <div class="clock" id="clock">--:--</div>
+      <div class="logout-btn" id="logoutBtn">Logout</div>
+    </div>
+  </header>
+
+  <nav id="sideMenu" aria-hidden="true">
+    <a href="/home/dashboard/"><span class="material-icons">home</span>Dashboard</a>
+    <a href="/home/dashboard/users/"><span class="material-icons">group</span>Users</a>
+    <a href="/home/dashboard/groups/"><span class="material-icons">groups</span>Groups</a>
+    <a href="/home/dashboard/create/"><span class="material-icons">add_circle</span>Create</a>
+    <a href="/home/dashboard/user-storage/"><span class="material-icons">storage</span>Storage</a>
+    <a href="/home/dashboard/coins/"><span class="material-icons">paid</span>Coins</a>
+    <a href="/home/dashboard/quests-and-rewards/"><span class="material-icons">emoji_events</span>Quests</a>
+    <a href="/home/dashboard/settings/"><span class="material-icons">settings</span>Settings</a>
+  </nav>
+  <div id="menuOverlay"></div>
+
+  <main>
+    <div class="container">
+      <div class="card">
+        <div class="heading">
+          <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+            <a class="back-btn" href="/home/dashboard/settings/more/" id="backBtn">
+              <span class="material-icons">arrow_back</span><span>Back</span>
+            </a>
+            <h2 style="margin:0 0 0 8px;">Update logs and events posts</h2>
+          </div>
+          <div class="muted">Latest product updates, release notes and special events</div>
+        </div>
+
+        <div class="tabs" role="tablist" aria-label="settings tabs">
+          <a class="tab" href="/home/dashboard/settings/"><span class="icon material-icons">settings</span><span class="txt">Account Settings</span></a>
+          <a class="tab active" href="/home/dashboard/settings/more/"><span class="icon material-icons">description</span><span class="txt">Updates / Rules</span></a>
+          <a class="tab" href="/home/dashboard/settings/help/"><span class="icon material-icons">help</span><span class="txt">Help</span></a>
+          <a class="tab" href="/home/dashboard/settings/faq/"><span class="icon material-icons">info</span><span class="txt">FAQ</span></a>
+        </div>
+
+        <div id="contentArea">
+          <div id="gridContainer" class="grid" aria-live="polite">
+            <!-- articles will be injected here -->
+          </div>
+
+          <div id="emptyMsg" style="margin-top:12px; display:none;" class="muted">No updates found yet.</div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    // Firebase imports (modular)
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+    import {
+      getFirestore, collection, getDocs, query, orderBy, doc, getDoc
+    } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
+
+    // config - keep same as your other pages
+    const firebaseConfig = {
+      apiKey: "AIzaSyBiGzil9wA3CXZWxWjHsn7iKPkiYQozQW8",
+      authDomain: "timesphere-9f7e0.firebaseapp.com",
+      projectId: "timesphere-9f7e0",
+      storageBucket: "timesphere-9f7e0.firebasestorage.app",
+      messagingSenderId: "94629610195",
+      appId: "1:94629610195:web:a037e5c5aa0c5ba7e50a26"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    // helper: format createdAt to MM/DD/YYYY (handles Firestore Timestamp or ISO/string)
+    function formatMdY(input) {
+      if(!input) return 'Unknown date';
+      let d;
+      // Firestore Timestamp detection (has toDate)
+      if(typeof input.toDate === 'function') d = input.toDate();
+      else if (typeof input === 'string') d = new Date(input);
+      else if (input instanceof Date) d = input;
+      else d = new Date(input); // fallback
+      if (isNaN(d.getTime())) return 'Invalid date';
+      const mm = String(d.getMonth()+1).padStart(2,'0');
+      const dd = String(d.getDate()).padStart(2,'0');
+      const yyyy = String(d.getFullYear());
+      return `${mm}/${dd}/${yyyy}`;
+    }
+
+    // safe element getter
+    const $ = id => document.getElementById(id);
+
+    async function loadChangelog(){
+      const grid = $('gridContainer');
+      const empty = $('emptyMsg');
+      grid.innerHTML = '';
+      empty.style.display = 'none';
+
+      try {
+        // query collection update&event ordered by createdAt desc (if createdAt exists)
+        const col = collection(db, 'update&event');
+        // try to order; if server has inconsistent createdAt types, this may still work
+        const q = query(col, orderBy('createdAt', 'desc'));
+        const snap = await getDocs(q);
+        // fallback if ordering fails or zero docs (we still handle)
+        if (snap.empty) {
+          empty.style.display = 'block';
+          return;
+        }
+
+        // iterate docs and render cards
+        snap.docs.forEach(docSnap => {
+          const data = docSnap.data() || {};
+          const id = docSnap.id;
+          const title = data.title || data.name || id;
+          const imageURL = data.imageURL || '/home/data/obrazek.png';
+          const createdAt = data.createdAt || data.created || null;
+
+          const dateText = formatMdY(createdAt);
+
+          const a = document.createElement('a');
+          // link to article page; you can change to `/home/dashboard/article/name=${id}` if you prefer
+          a.href = `/home/dashboard/article/?name=${encodeURIComponent(id)}`;
+          a.className = 'article-card';
+          a.setAttribute('aria-label', String(title));
+
+          a.innerHTML = `
+            <div class="article-thumb">
+              <img src="${imageURL}" alt="${title}" onerror="this.onerror=null;this.src='/home/data/obrazek.png'"/>
+              <div class="article-title-overlay">${escapeHtml(title)}</div>
+            </div>
+            <div class="article-meta">
+              <div class="article-date">${dateText}</div>
+              <div><span class="article-open-btn">Open</span></div>
+            </div>
+          `;
+
+          grid.appendChild(a);
+        });
+
+      } catch (err) {
+        console.error('loadChangelog error', err);
+        empty.textContent = 'Error loading updates.';
+        empty.style.display = 'block';
+      }
+    }
+
+    // escape function for small title insertion
+    function escapeHtml(s){
+      return String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+    }
+
+    // header/menu helpers same style as other pages
+    const menuToggle = document.getElementById('menuToggle');
+    const sideMenu = document.getElementById('sideMenu');
+    const menuOverlay = document.getElementById('menuOverlay');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const clockEl = document.getElementById('clock');
+
+    if(menuToggle && sideMenu && menuOverlay){
+      menuToggle.addEventListener('click', ()=>{ sideMenu.classList.add('open'); menuOverlay.classList.add('show'); });
+      menuOverlay.addEventListener('click', ()=>{ sideMenu.classList.remove('open'); menuOverlay.classList.remove('show'); });
+      document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape'){ sideMenu.classList.remove('open'); menuOverlay.classList.remove('show'); }});
+    }
+
+    if(logoutBtn) logoutBtn.addEventListener('click', ()=>{ location.href = '/login/index.html'; });
+
+    // header clock showing Europe/London time
+    function updateHeaderClock(){
+      const now = new Date();
+      try {
+        const options = { hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit', timeZone:'Europe/London' };
+        clockEl.textContent = new Intl.DateTimeFormat('en-GB', options).format(now);
+      } catch(e){
+        clockEl.textContent = now.toLocaleTimeString('en-GB', {hour12:false});
+      }
+    }
+    setInterval(updateHeaderClock,1000);
+    updateHeaderClock();
+
+    // run loader after auth ready (but allow rendering even without auth)
+    onAuthStateChanged(auth, (user) => {
+      loadChangelog().catch(e => console.error(e));
+    });
+
+    // also try load even if auth state takes long
+    loadChangelog().catch(e => console.error(e));
+  </script>
+</body>
+                                                                </html>
