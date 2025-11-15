@@ -107,8 +107,29 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
+  
+  // --- STORAGE UPDATE FUNCTION ---
+import { doc, getDoc, setDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
 
-  // funkcja quest
+async function updateStorageUsage(uid, addedMB) {
+  const storageRef = doc(db, "storage", uid);
+  const storageSnap = await getDoc(storageRef);
+  
+  if (!storageSnap.exists()) {
+    // jeśli użytkownik nie ma jeszcze storage, utwórz nowy
+    await setDoc(storageRef, { used: addedMB });
+  } else {
+    const current = storageSnap.data().used || 0;
+    const newUsage = current + addedMB;
+    if (newUsage > 250) {
+      alert("Storage limit exceeded (250MB). Cannot create new items.");
+      throw new Error("Storage limit exceeded");
+    }
+    await updateDoc(storageRef, { used: increment(addedMB) });
+  }
+  }
+
+    // funkcja quest
   async function updateQuestProgress(uid, questId, amount = 1) {
     try {
       const ref = doc(db, "user_quests", `${uid}_${questId}`);
@@ -131,27 +152,6 @@ const auth = getAuth(app);
     } catch (err) {
       console.error("updateQuestProgress error:", err);
     }
-  }
-  
-  // --- STORAGE UPDATE FUNCTION ---
-import { doc, getDoc, setDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
-
-async function updateStorageUsage(uid, addedMB) {
-  const storageRef = doc(db, "storage", uid);
-  const storageSnap = await getDoc(storageRef);
-  
-  if (!storageSnap.exists()) {
-    // jeśli użytkownik nie ma jeszcze storage, utwórz nowy
-    await setDoc(storageRef, { used: addedMB });
-  } else {
-    const current = storageSnap.data().used || 0;
-    const newUsage = current + addedMB;
-    if (newUsage > 250) {
-      alert("Storage limit exceeded (250MB). Cannot create new items.");
-      throw new Error("Storage limit exceeded");
-    }
-    await updateDoc(storageRef, { used: increment(addedMB) });
-  }
   }
   
 /* ---------- helper to safely get element ---------- */
