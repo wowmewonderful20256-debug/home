@@ -108,6 +108,31 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
+  // funkcja quest
+  async function updateQuestProgress(uid, questId, amount = 1) {
+    try {
+      const ref = doc(db, "user_quests", `${uid}_${questId}`);
+      const snap = await getDoc(ref);
+
+      if (!snap.exists()) {
+        await setDoc(ref, {
+          uid,
+          questId,
+          doneCount: amount,
+          claimed: false
+        });
+        console.log(`Created new progress for "${questId}"`);
+      } else {
+        const data = snap.data();
+        const newDone = (data.doneCount || 0) + amount;
+        await updateDoc(ref, { doneCount: newDone });
+        console.log(`Progress updated for "${questId}": ${newDone}`);
+      }
+    } catch (err) {
+      console.error("updateQuestProgress error:", err);
+    }
+  }
+  
   // --- STORAGE UPDATE FUNCTION ---
 import { doc, getDoc, setDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
 
@@ -343,6 +368,7 @@ if (createBtn) {
         ownerUid: user.uid,
         createdAt: new Date().toISOString()
       });
+      await updateQuestProgress(currentUser.uid, "Create Clock", 1);
       window.location.href = `/home/dashboard/clock.html?id=${docRef.id}`;
     } catch (e) {
       alert('Creation failed: ' + (e.message || e));
