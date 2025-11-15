@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>TimeSphere | Article</title>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
+<style>
+  /* styles preserved from other dashboard pages */
+  :root { --card-bg: rgba(255,255,255,0.08); --card-bg-2: rgba(255,255,255,0.12); --accent: #ff8a00; }
+  html,body{height:100%;margin:0;font-family:'Poppins',sans-serif;background:linear-gradient(135deg,#5d54a4,#7c78b8);color:#fff}
+  header{display:flex;justify-content:space-between;align-items:center;padding:1rem 2rem;background:rgba(255,255,255,0.1);backdrop-filter:blur(8px);position:fixed;top:0;left:0;right:0;z-index:10}
+  .menu-btn{font-size:2rem;cursor:pointer}
+  .title{font-weight:600;font-size:1.25rem}
+  .right{display:flex;gap:1rem;align-items:center}
+  .logout-btn{cursor:pointer;background:rgba(255,255,255,0.15);padding:.5rem 1rem;border-radius:8px}
+  #sideMenu{position:fixed;top:0;left:-260px;width:260px;height:100%;background:rgba(0,0,0,0.32);backdrop-filter:blur(8px);padding-top:4rem;transition:left .35s;z-index:20}
+  #sideMenu.open{left:0}
+  #sideMenu a{display:flex;align-items:center;gap:1rem;padding:1rem 1.25rem;color:white;text-decoration:none}
+  #menuOverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.32);z-index:15}
+  #menuOverlay.show{display:block}
+
+  main{margin-top:90px;padding:2rem;display:flex;justify-content:center}
+  .container{width:100%;max-width:1000px;background:var(--card-bg);border-radius:18px;padding:20px;box-shadow:0 8px 30px rgba(0,0,0,0.25)}
+  .tabs{display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+  .tab{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;background:transparent;color:rgba(255,255,255,0.9);cursor:default}
+  .tab.active{background:linear-gradient(90deg,var(--accent),#e52e71);color:#000;font-weight:700}
+
+  .back-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+  .back-btn{background:linear-gradient(90deg,var(--accent),#e52e71);border:none;padding:10px 14px;border-radius:12px;color:#000;font-weight:700;cursor:pointer}
+
+  .article-title{font-size:1.6rem;font-weight:800;margin:0 0 8px 0}
+  .article-meta{color:rgba(255,255,255,0.8);margin-bottom:12px;font-size:0.95rem}
+
+  .media-row{display:flex;gap:16px;flex-wrap:wrap}
+  .thumb-16-9{flex:1 1 60%; max-width: 100%; position:relative; overflow:hidden;border-radius:12px;background:#111}
+  .thumb-16-9::before{content:"";display:block;padding-top:56.25%} /* 16:9 ratio */
+  .thumb-16-9 img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+
+  .img-square{width:200px; height:200px;flex:0 0 200px;border-radius:12px;overflow:hidden;background:#111}
+  .img-square img{width:100%;height:100%;object-fit:cover}
+
+  .article-body{margin-top:16px;line-height:1.6;color:#fff}
+  .article-body .lead{font-weight:700;margin-bottom:12px}
+
+  .muted{opacity:0.9;color:rgba(255,255,255,0.85)}
+  .center{display:flex;justify-content:center;align-items:center}
+
+  @media(max-width:800px){
+    .media-row{flex-direction:column}
+    .img-square{width:100%;height:240px;flex:1 1 auto}
+    .thumb-16-9{width:100%}
+  }
+</style>
+</head>
+<body>
+  <header>
+    <span class="menu-btn material-icons" id="menuToggle">menu</span>
+    <div class="title">TimeSphere</div>
+    <div class="right">
+      <div id="clock">--:--</div>
+      <div class="logout-btn" id="logoutBtn">Logout</div>
+    </div>
+  </header>
+
+  <nav id="sideMenu">
+    <a href="/home/dashboard/"><span class="material-icons">home</span>Dashboard</a>
+    <a href="/home/dashboard/users/"><span class="material-icons">group</span>Users</a>
+    <a href="/home/dashboard/groups/"><span class="material-icons">groups</span>Groups</a>
+    <a href="/home/dashboard/create/"><span class="material-icons">add_circle</span>Create</a>
+    <a href="/home/dashboard/user-storage/"><span class="material-icons">storage</span>Storage</a>
+    <a href="/home/dashboard/coins/"><span class="material-icons">paid</span>Coins</a>
+    <a href="/home/dashboard/quests-and-rewards/"><span class="material-icons">emoji_events</span>Quests</a>
+    <a href="/home/dashboard/settings/"><span class="material-icons">settings</span>Settings</a>
+  </nav>
+  <div id="menuOverlay"></div>
+
+  <main>
+    <div class="container" id="container">
+      <div class="tabs" aria-hidden="true">
+        <div class="tab"><span class="material-icons">settings</span>Account Settings</div>
+        <div class="tab"><span class="material-icons">description</span>Updates/Rules</div>
+        <div class="tab"><span class="material-icons">help_outline</span>Help</div>
+        <div class="tab"><span class="material-icons">info</span>FAQ</div>
+      </div>
+
+      <div class="back-row">
+        <div class="muted">Article</div>
+        <div>
+          <button class="back-btn" id="backBtn">Back</button>
+        </div>
+      </div>
+
+      <div id="articleArea">
+        <h1 class="article-title" id="articleTitle">Loading…</h1>
+        <div class="article-meta" id="articleMeta">created: —</div>
+
+        <div class="media-row">
+          <div class="thumb-16-9" id="thumbWrap"><img id="thumbImg" alt="thumbnail" src="" /></div>
+          <div class="img-square" id="imgWrap"><img id="mainImg" alt="image" src="" /></div>
+        </div>
+
+        <div class="article-body" id="articleBody">
+          <div class="lead" id="articleLead">—</div>
+          <div id="articleText">Loading content…</div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+<script type="module">
+/* Article page module: loads document from collection "update&event" using ?name=DOCID
+   Shows title (data.title || doc.id), created MM/DD/YYYY, thumbnail (16:9), image (square), and description.
+*/
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+import {
+  getFirestore, doc, getDoc
+} from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
+
+// --- firebase config (same as your other pages) ---
+const firebaseConfig = {
+  apiKey: "AIzaSyBiGzil9wA3CXZWxWjHsn7iKPkiYQozQW8",
+  authDomain: "timesphere-9f7e0.firebaseapp.com",
+  projectId: "timesphere-9f7e0",
+  storageBucket: "timesphere-9f7e0.appspot.com",
+  messagingSenderId: "94629610195",
+  appId: "1:94629610195:web:a037e5c5aa0c5ba7e50a26"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+// small helpers
+const $ = id => document.getElementById(id);
+function fmtMMDDYYYY(d){
+  if(!(d instanceof Date) || isNaN(d)) return '—';
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  const yyyy = d.getFullYear();
+  return `${mm}/${dd}/${yyyy}`;
+}
+
+// parse query param ?name=DOCID
+function getQueryName(){
+  const params = new URLSearchParams(location.search);
+  return params.get('name') || params.get('id') || params.get('doc') || null;
+}
+
+// safe set image (if empty hide container)
+function setImg(el, url, container){
+  if(!url){ if(container) container.style.display='none'; el.src=''; return; }
+  if(container) container.style.display='';
+  el.src = url;
+}
+
+// UI elements
+const articleTitle = $('articleTitle');
+const articleMeta = $('articleMeta');
+const thumbImg = $('thumbImg');
+const mainImg = $('mainImg');
+const thumbWrap = $('thumbWrap');
+const imgWrap = $('imgWrap');
+const articleLead = $('articleLead');
+const articleText = $('articleText');
+
+// back button
+$('backBtn').addEventListener('click', ()=> {
+  // go back to "more" page (as requested earlier)
+  location.href = '/home/dashboard/settings/more/';
+});
+
+// header menu toggle (same UI behaviour)
+const menuToggle = document.getElementById('menuToggle');
+const sideMenu = document.getElementById('sideMenu');
+const menuOverlay = document.getElementById('menuOverlay');
+menuToggle?.addEventListener('click', ()=> sideMenu?.classList.add('open') && menuOverlay?.classList.add('show'));
+menuOverlay?.addEventListener('click', ()=> sideMenu?.classList.remove('open') && menuOverlay?.classList.remove('show'));
+document.getElementById('logoutBtn')?.addEventListener('click', ()=> location.href='/login/index.html');
+
+// header clock (Europe/London)
+function updateHeaderClock(){
+  try{
+    const now = new Date();
+    const opts = { hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit', timeZone:'Europe/London' };
+    $('clock').textContent = new Intl.DateTimeFormat('en-GB', opts).format(now);
+  }catch(e){
+    $('clock').textContent = new Date().toLocaleTimeString();
+  }
+}
+setInterval(updateHeaderClock,1000);
+updateHeaderClock();
+
+// ensure user auth (redirect if not logged in)
+onAuthStateChanged(auth, (user) => {
+  if(!user){ try{ location.href = '/login/index.html'; } catch(e){} }
+});
+
+// main loader
+(async function loadArticle(){
+  const docId = getQueryName();
+  if(!docId){
+    articleTitle.textContent = 'Article not specified';
+    articleMeta.textContent = 'No document name provided in URL.';
+    return;
+  }
+
+  try{
+    articleTitle.textContent = 'Loading…';
+    const ref = doc(db, 'update&event', docId);
+    const snap = await getDoc(ref);
+    if(!snap.exists()){
+      articleTitle.textContent = `Article not found: ${docId}`;
+      articleMeta.textContent = '';
+      thumbWrap.style.display = 'none';
+      imgWrap.style.display = 'none';
+      articleText.textContent = 'No article present with that name.';
+      return;
+    }
+
+    const data = snap.data() || {};
+    const title = data.title || data.name || docId;
+    // createdAt may be Timestamp, ISO string, or number
+    let createdAt = null;
+    if(data.createdAt && typeof data.createdAt === 'object' && typeof data.createdAt.toDate === 'function'){
+      createdAt = data.createdAt.toDate();
+    } else if(typeof data.createdAt === 'string' || typeof data.createdAt === 'number'){
+      const t = new Date(data.createdAt);
+      createdAt = isNaN(t) ? null : t;
+    } else {
+      createdAt = null;
+    }
+
+    const thumbURL = data.thumbnailURL || data.thumb || data.thumbnail || '';
+    const imageURL = data.imageURL || data.image || data.img || '';
+    // article text: prefer common keys
+    const text = data.content || data.text || data.body || data.description || '';
+
+    articleTitle.textContent = title;
+    articleMeta.textContent = 'Created: ' + (createdAt ? fmtMMDDYYYY(createdAt) : '—');
+    setImg(thumbImg, thumbURL, thumbWrap);
+    setImg(mainImg, imageURL, imgWrap);
+
+    // show lead + text
+    if(text){
+      // if large, keep first sentence as lead
+      const lead = (typeof text === 'string') ? (text.split('\n\n')[0].slice(0,200)) : '';
+      articleLead.textContent = lead;
+      articleText.textContent = typeof text === 'string' ? text : JSON.stringify(text);
+    } else {
+      articleLead.textContent = 'No description provided.';
+      articleText.textContent = '';
+    }
+
+  } catch(err){
+    console.error('loadArticle error', err);
+    articleTitle.textContent = 'Error loading article';
+    articleMeta.textContent = (err && err.message) ? err.message : String(err);
+    thumbWrap.style.display = 'none';
+    imgWrap.style.display = 'none';
+    articleText.textContent = '';
+  }
+})();
+</script>
+</body>
+  </html>
