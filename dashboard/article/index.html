@@ -248,7 +248,6 @@ onAuthStateChanged(auth, (user) => {
     if(text){
       // if large, keep first sentence as lead
       const lead = (typeof text === 'string') ? (text.split('\n\n')[0].slice(0,200)) : '';
-      articleLead.textContent = lead;
       articleText.textContent = typeof text === 'string' ? text : JSON.stringify(text);
     } else {
       articleLead.textContent = 'No description provided.';
