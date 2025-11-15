@@ -240,7 +240,7 @@ function logDebug(...args){
   }catch(e){}
 }
 
-/* ---------------- Helpers & config ---------------- */
+// --- Config & small helpers ---
 const QUEST_IDS = [
   "Create clock","Create Countdown","Create Time","Create 3 Clocks",
   "Edit Clock","Edit Countdown","Share Countdown","Create Group","Account Length 10 Days"
@@ -248,6 +248,7 @@ const QUEST_IDS = [
 const DAILY_SHOW = 5;
 const DAILY_REWARDS = [25,45,80,130,250];
 const DAILY_MAX_DAYS = 5;
+
 function pad(n){ return String(n).padStart(2,'0'); }
 function formatMsToHMS(ms){
   if(ms<=0) return "00:00:00";
@@ -258,7 +259,6 @@ function formatMsToHMS(ms){
   return `${pad(hh)}:${pad(mm)}:${pad(ss)}`;
 }
 function msUntilLondonMidnight(){
-  // compute remaining seconds in Europe/London day by Intl parts
   try{
     const parts = new Intl.DateTimeFormat('en-GB', {
       timeZone: 'Europe/London', hour12:false,
@@ -271,40 +271,31 @@ function msUntilLondonMidnight(){
     const secondsToMidnight = 24*3600 - secondsPassed;
     return secondsToMidnight * 1000;
   }catch(e){
-    // fallback: use local midnight approx
     const now = new Date();
     const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate()+1);
     return tomorrow - now;
   }
 }
-function escapeHtml(s){
-  return String(s || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-}
+function escapeHtml(s){ return String(s || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 function safeId(s){ return encodeURIComponent(String(s)).replace(/[%]/g,'_'); }
 
-/* ---------------- Firestore helpers ---------------- */
-async function ensureCoinsDoc(uid){
-  const ref = doc(db,'user_coins', uid);
-  const snap = await getDoc(ref);
-  if(!snap.exists()){
-    await setDoc(ref, { SphereCoins: 0 });
-    return 0;
-  }
-  return Number(snap.data()?.SphereCoins || 0);
-}
-
+// --- Quest generator (run once if missing) ---
+// ustawiamy domyślnie, które questy mają być publiczne (availableAll:true) a które zablokowane (unlockCost)
 async function ensureQuestsExist(){
   logDebug('🟡 ensureQuestsExist() start');
   const questTemplates = [
-    { id: "Create clock", title: "Create clock", total: 1, reward: 15, type: "daily" },
-    { id: "Create Countdown", title: "Create Countdown", total: 1, reward: 15, type: "daily" },
-    { id: "Create Time", title: "Create Time", total: 1, reward: 15, type: "daily" },
-    { id: "Create 3 Clocks", title: "Create 3 Clocks", total: 3, reward: 40, type: "weekly" },
-    { id: "Edit Clock", title: "Edit Clock", total: 1, reward: 20, type: "daily" },
-    { id: "Edit Countdown", title: "Edit Countdown", total: 1, reward: 20, type: "daily" },
-    { id: "Share Countdown", title: "Share Countdown", total: 1, reward: 30, type: "daily" },
-    { id: "Create Group", title: "Create Group", total: 1, reward: 50, type: "daily" },
-    { id: "Account Length 10 Days", title: "Account Length 10 Days", total: 10, reward: 160, type: "weekly" }
+    // TE 3 będą odblokowane dla wszystkich domyślnie
+    { id: "Create clock", title: "Create clock", total: 1, reward: 15, type: "daily", availableAll: true, unlockCost: null },
+    { id: "Create Countdown", title: "Create Countdown", total: 1, reward: 15, type: "daily", availableAll: true, unlockCost: null },
+    { id: "Create Time", title: "Create Time", total: 1, reward: 15, type: "daily", availableAll: true, unlockCost: null },
+
+    // reszta są zablokowane domyślnie (availableAll:false) i mają cost do odblokowania
+    { id: "Create 3 Clocks", title: "Create 3 Clocks", total: 3, reward: 40, type: "weekly", availableAll: false, unlockCost: 40 },
+    { id: "Edit Clock", title: "Edit Clock", total: 1, reward: 20, type: "daily", availableAll: false, unlockCost: 15 },
+    { id: "Edit Countdown", title: "Edit Countdown", total: 1, reward: 20, type: "daily", availableAll: false, unlockCost: 15 },
+    { id: "Share Countdown", title: "Share Countdown", total: 1, reward: 30, type: "daily", availableAll: false, unlockCost: 30 },
+    { id: "Create Group", title: "Create Group", total: 1, reward: 50, type: "daily", availableAll: false, unlockCost: 50 },
+    { id: "Account Length 10 Days", title: "Account Length 10 Days", total: 10, reward: 160, type: "weekly", availableAll: false, unlockCost: 75 }
   ];
 
   for(const qt of questTemplates){
@@ -319,14 +310,24 @@ async function ensureQuestsExist(){
           total: qt.total,
           reward: qt.reward,
           unlockCost: qt.unlockCost !== undefined ? qt.unlockCost : null,
-          availableUids: [],    // empty = open to all
-          availableAll: false,
+          availableUids: [],    // kto odblokował indywidualnie
+          availableAll: qt.availableAll === true,
           type: qt.type || 'daily',
           createdAt: new Date().toISOString()
         });
         logDebug('✅ Created quest:', qt.id);
       } else {
-        logDebug('✅ Quest exists:', qt.id);
+        // jeśli dokument istnieje, upewnij się, że ma pola których oczekujemy (nie nadpisujemy wszystkiego)
+        const data = snap.data() || {};
+        const update = {};
+        if(data.availableAll === undefined) update.availableAll = qt.availableAll === true;
+        if(data.unlockCost === undefined && qt.unlockCost !== undefined) update.unlockCost = qt.unlockCost;
+        if(Object.keys(update).length) {
+          await updateDoc(ref, update);
+          logDebug('Patched quest fields for', qt.id, update);
+        } else {
+          logDebug('✅ Quest exists:', qt.id);
+        }
       }
     } catch(err){
       console.error('ensureQuestsExist error', err);
@@ -334,6 +335,17 @@ async function ensureQuestsExist(){
     }
   }
   logDebug('🟢 ensureQuestsExist() done');
+}
+
+// --- Firestore helpers ---
+async function ensureCoinsDoc(uid){
+  const ref = doc(db,'user_coins', uid);
+  const snap = await getDoc(ref);
+  if(!snap.exists()){
+    await setDoc(ref, { SphereCoins: 0 });
+    return 0;
+  }
+  return Number(snap.data()?.SphereCoins || 0);
 }
 
 async function getUserQuestProgress(uid, questId){
@@ -367,7 +379,7 @@ async function spendCoins(uid, amount){
   }
 }
 
-// Claim quest reward: read-then-write pattern inside transaction
+// Claim quest reward: read-then-write in transaction (Firestore requirement)
 async function claimQuestReward(uid, questId, reward){
   const uqRef = doc(db,'user_quests', `${uid}_${questId}`);
   const coinsRef = doc(db,'user_coins', uid);
@@ -404,12 +416,14 @@ async function claimQuestReward(uid, questId, reward){
 }
 
 async function unlockQuestForUser(uid, questId, cost){
+  // najpierw spróbuj pobrać monety i zapłacić (spendCoins robi to w transakcji)
   const ok = await spendCoins(uid, cost);
   if(!ok) throw new Error('Insufficient coins');
+  // dodaj UID do availableUids (trwałe odblokowanie)
   await updateDoc(doc(db,'quests', questId), { availableUids: arrayUnion(uid) });
 }
 
-/* ---------------- Render quests UI ---------------- */
+/* ----------------- Main UI: load & render quests ----------------- */
 async function loadAndRenderQuests(uid){
   logDebug('🟡 loadAndRenderQuests start for', uid);
   const questsGrid = document.getElementById('questsGrid');
@@ -426,14 +440,56 @@ async function loadAndRenderQuests(uid){
       return;
     }
 
+    // przygotuj tablice unlocked / locked dla wyboru widocznych pięciu
     const all = qSnap.docs.map(d => ({ id: d.id, ...(d.data()||{}) }));
-    // shuffle (Fisher-Yates)
-    for(let i = all.length - 1; i > 0; i--){
-      const j = Math.floor(Math.random() * (i + 1));
-      [all[i], all[j]] = [all[j], all[i]];
+    const unlocked = [];
+    const locked = [];
+    for(const q of all){
+      const availableAll = !!q.availableAll;
+      const availableUids = Array.isArray(q.availableUids) ? q.availableUids : [];
+      const isUnlocked = availableAll || availableUids.includes(uid);
+      if(isUnlocked) unlocked.push(q); else locked.push(q);
     }
-    const chosen = all.slice(0, Math.min(DAILY_SHOW, all.length));
 
+    // chcemy pokazać dokładnie 5: 3 odblokowane i 2 zablokowane (jeśli dostępne)
+    const chosen = [];
+    // 1) wybierz do 3 odblokowanych (losowo jeśli więcej)
+    if(unlocked.length <= 3){
+      chosen.push(...unlocked);
+    } else {
+      // losuj 3
+      for(let i=0;i<3;i++){
+        const idx = Math.floor(Math.random() * unlocked.length);
+        chosen.push(unlocked.splice(idx,1)[0]);
+      }
+    }
+    // 2) wybierz do 2 zablokowanych (jeśli brak, dopełnij z nieużytych odblokowanych)
+    if(locked.length >= 2){
+      // losuj 2 z locked
+      for(let i=0;i<2;i++){
+        const idx = Math.floor(Math.random() * locked.length);
+        chosen.push(locked.splice(idx,1)[0]);
+      }
+    } else {
+      // jeśli brak zablokowanych, dopełnij z unlocked (jeśli są dodatkowe)
+      const need = 5 - chosen.length;
+      while(need > chosen.length && unlocked.length){
+        chosen.push(unlocked.pop());
+      }
+      // jeśli dalej krócej — użyj pozostałych locked (nawet jeśli mniej niż 2)
+      while(chosen.length < 5 && locked.length){
+        chosen.push(locked.pop());
+      }
+    }
+
+    // jeżeli nadal mniej niż 5, dopełnij dowolnymi z all
+    let iAll = 0;
+    while(chosen.length < Math.min(5, all.length) && iAll < all.length){
+      if(!chosen.includes(all[iAll])) chosen.push(all[iAll]);
+      iAll++;
+    }
+
+    // render
     questsGrid.innerHTML = '';
     for(const q of chosen){
       const qid = q.id;
@@ -443,6 +499,7 @@ async function loadAndRenderQuests(uid){
       const unlockCost = (q.unlockCost !== undefined ? Number(q.unlockCost) : null);
       const availableUids = Array.isArray(q.availableUids) ? q.availableUids : [];
       const availableAll = !!q.availableAll;
+      const isAvailable = availableAll || availableUids.includes(uid);
 
       const progress = await getUserQuestProgress(uid, qid);
       const done = Number(progress.doneCount || 0);
@@ -455,43 +512,63 @@ async function loadAndRenderQuests(uid){
       card.style.background = 'rgba(255,255,255,0.03)';
       card.style.borderRadius = '10px';
 
-      card.innerHTML = `
-        <div style="display:flex;gap:10px;align-items:center;">
-          <span class="material-icons">task</span>
-          <div style="flex:1">
-            <div style="font-weight:700">${escapeHtml(title)}</div>
-            <div class="muted">Progress: <strong>${done}</strong> / ${total} — Reward: <strong>${reward}</strong> coins</div>
-          </div>
-        </div>
-        <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center">
-          <div class="muted" id="quest-${safeId(qid)}-uptime">Update quest in: --:--:--</div>
-          <div class="quest-actions"></div>
-        </div>
-      `;
-
-      const actions = card.querySelector('.quest-actions');
-      const isAvailable = availableAll || (availableUids.length === 0) || availableUids.includes(uid);
-
+      // locked visual: pokaz kłódkę i informację Unlock for: X
       if(!isAvailable){
-        const locked = document.createElement('div');
-        locked.innerHTML = `<div class="muted">Locked — Unlock for: <strong>${unlockCost !== null ? unlockCost : '?'}</strong> coins</div>
-          <div style="margin-top:6px"><button class="btn" id="unlock-${safeId(qid)}">Unlock</button></div>`;
-        actions.appendChild(locked);
-        const unlockBtn = locked.querySelector(`#unlock-${safeId(qid)}`);
-        unlockBtn?.addEventListener('click', async () => {
-          try{
-            if(unlockCost === null){ alert('This quest cannot be unlocked'); return; }
-            const ok = await spendCoins(uid, unlockCost);
-            if(!ok){ alert('Not enough coins'); return; }
-            await updateDoc(doc(db,'quests', qid), { availableUids: arrayUnion(uid) });
-            alert('Quest unlocked!');
-            await loadAndRenderQuests(uid);
-          } catch(err){
-            console.error('unlock error', err);
-            alert('Unlock failed: ' + (err.message || err));
-          }
-        });
+        card.innerHTML = `
+          <div style="display:flex;gap:10px;align-items:center;">
+            <span class="material-icons">lock</span>
+            <div style="flex:1">
+              <div style="font-weight:700">${escapeHtml(title)}</div>
+              <div class="muted">Locked — Unlock for: <strong>${unlockCost !== null ? unlockCost : '?'}</strong> coins</div>
+              <div class="muted">Progress: <strong>${done}</strong> / ${total}</div>
+            </div>
+          </div>
+          <div style="margin-top:8px"><button class="btn" id="unlock-btn-${safeId(qid)}">Unlock (${unlockCost !== null ? unlockCost : '?'})</button></div>
+        `;
       } else {
+        // dostępny — pokaz progress i ewentualny claim
+        card.innerHTML = `
+          <div style="display:flex;gap:10px;align-items:center;">
+            <span class="material-icons">task</span>
+            <div style="flex:1">
+              <div style="font-weight:700">${escapeHtml(title)}</div>
+              <div class="muted">Progress: <strong>${done}</strong> / ${total} — Reward: <strong>${reward}</strong> coins</div>
+            </div>
+          </div>
+          <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center">
+            <div class="muted" id="quest-${safeId(qid)}-uptime">Update quest in: --:--:--</div>
+            <div class="quest-actions"></div>
+          </div>
+        `;
+      }
+
+      questsGrid.appendChild(card);
+
+      // attach handlers
+      if(!isAvailable){
+        const btn = document.getElementById(`unlock-btn-${safeId(qid)}`);
+        if(btn){
+          btn.addEventListener('click', async () => {
+            btn.disabled = true;
+            btn.textContent = 'Processing…';
+            try{
+              if(unlockCost === null){ alert('This quest cannot be unlocked'); btn.disabled=false; btn.textContent=`Unlock (${unlockCost})`; return; }
+              const ok = await spendCoins(uid, unlockCost);
+              if(!ok){ alert('Not enough coins to unlock'); btn.disabled=false; btn.textContent=`Unlock (${unlockCost})`; return; }
+              await updateDoc(doc(db,'quests', qid), { availableUids: arrayUnion(uid) });
+              alert('Quest unlocked!');
+              await loadAndRenderQuests(uid);
+            } catch(err){
+              console.error('unlock error', err);
+              alert('Unlock failed: ' + (err.message || err));
+              btn.disabled = false;
+              btn.textContent = `Unlock (${unlockCost})`;
+            }
+          });
+        }
+      } else {
+        // claim logic or status
+        const actions = card.querySelector('.quest-actions');
         if(done >= total && !claimed){
           const claimBtn = document.createElement('button');
           claimBtn.className = 'claim-btn';
@@ -514,26 +591,24 @@ async function loadAndRenderQuests(uid){
           info.textContent = (rem === 0 ? (claimed ? 'Completed' : 'Ready') : `Need ${rem}`);
           actions.appendChild(info);
         }
+        // uptime timer
+        const uptimeEl = card.querySelector(`#quest-${safeId(qid)}-uptime`);
+        if(uptimeEl){
+          const updateUptime = () => { uptimeEl.textContent = 'Update quest in: ' + formatMsToHMS(msUntilLondonMidnight()); };
+          updateUptime();
+          setInterval(updateUptime, 1000);
+        }
       }
-
-      const uptimeEl = card.querySelector(`#quest-${safeId(qid)}-uptime`);
-      if(uptimeEl){
-        const updateUptime = () => { uptimeEl.textContent = 'Update quest in: ' + formatMsToHMS(msUntilLondonMidnight()); };
-        updateUptime();
-        setInterval(updateUptime, 1000);
-      }
-
-      questsGrid.appendChild(card);
     }
 
-    logDebug('🟢 loadAndRenderQuests done, rendered:', chosen.length);
+    logDebug('🟢 loadAndRenderQuests done, rendered:', Math.min(5, all.length));
   } catch(err){
     console.error('loadAndRenderQuests error', err);
     logDebug('❌ loadAndRenderQuests error', (err && err.message) || err);
     if(questsGrid) questsGrid.innerHTML = "<div class='muted'>Error loading quests.</div>";
   }
 }
-
+  
 /* ---------------- Daily reward UI ---------------- */
 async function loadDailyUI(uid){
   try{
