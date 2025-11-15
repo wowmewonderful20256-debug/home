@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>TimeSphere | Rules</title>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
+<style>
+  :root { --card-bg: rgba(255,255,255,0.08); --card-bg-2: rgba(255,255,255,0.12); --accent: #ff8a00; --accent-2: #e52e71; }
+  html,body{height:100%}
+  body { margin:0; font-family:'Poppins',sans-serif; background: linear-gradient(135deg,#5d54a4,#7c78b8); color:#fff; overflow-x:hidden;}
+  header { display:flex; justify-content:space-between; align-items:center; padding:1rem 2rem; background: rgba(255,255,255,0.1); backdrop-filter: blur(8px); position:fixed; width:100%; top:0; z-index:10; }
+  .menu-btn { font-size:2rem; cursor:pointer; transition: transform .3s; } .menu-btn:hover { transform:scale(1.06); }
+  .title { font-weight:600; font-size:1.4rem; }
+  .right { display:flex; align-items:center; gap:1rem; }
+  .clock, .logout-btn { font-weight:600; }
+  .logout-btn { cursor:pointer; background: rgba(255,255,255,0.15); padding:0.5rem 1rem; border-radius:8px; transition: background .2s; }
+  .logout-btn:hover { background: rgba(255,255,255,0.28); }
+
+  #sideMenu { position:fixed; top:0; left:-260px; width:260px; height:100%; background: rgba(0,0,0,0.32); backdrop-filter: blur(8px); padding-top:4rem; transition:left .35s; z-index:20; }
+  #sideMenu.open { left:0; }
+  #sideMenu a { display:flex; align-items:center; gap:1rem; padding:1rem 1.25rem; color:white; text-decoration:none; transition: background .18s; }
+  #sideMenu a:hover { background: rgba(255,255,255,0.06); }
+  #menuOverlay { display:none; position:fixed; inset:0; background: rgba(0,0,0,0.32); z-index:15; }
+  #menuOverlay.show { display:block; }
+
+  main { margin-top:90px; padding:2rem; display:flex; flex-direction:column; gap:1.5rem; align-items:center; min-height:calc(100vh - 90px); }
+  .container { width:90%; max-width:1000px; }
+  .card { width:100%; background:var(--card-bg); border-radius:18px; padding:20px; box-shadow: 0 8px 30px rgba(0,0,0,0.25); }
+
+  .heading { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
+  .heading h2 { margin:0; font-size:1.25rem; }
+
+  .tabs { display:flex; gap:8px; margin-bottom:14px; }
+  .tab {
+    display:flex; gap:8px; align-items:center;
+    padding:10px 12px; border-radius:12px; cursor:pointer;
+    background: transparent; color: #fff; border: 1px solid rgba(255,255,255,0.04);
+    transition: background .18s, color .18s;
+    text-decoration:none;
+  }
+  .tab .icon { font-size:18px; opacity:0.95; display:inline-flex; align-items:center; justify-content:center; }
+  .tab .txt { font-weight:600; }
+  .tab.inactive { opacity:0.9; }
+
+  /* back button */
+  .back-btn {
+    display:inline-flex; align-items:center; gap:8px;
+    padding:8px 12px; border-radius:12px; cursor:pointer;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    color:#000; font-weight:700; text-decoration:none;
+    box-shadow: 0 8px 22px rgba(0,0,0,0.25);
+  }
+
+  /* rules content */
+  .rules { margin-top:8px; color:#e8e8e8; line-height:1.55; }
+  .rules ol { padding-left:18px; margin:0 0 16px 0; }
+  .rules li { margin-bottom:12px; background: rgba(0,0,0,0.04); padding:10px; border-radius:8px; }
+  .important { color:#ffd24d; font-weight:700; }
+
+  .footer-note { margin-top:18px; padding:12px; border-radius:10px; background: rgba(255,255,255,0.02); color:#ffd; }
+
+  /* responsive */
+  @media (max-width:700px){
+    .heading { flex-direction:column; align-items:flex-start; gap:8px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <span class="menu-btn material-icons" id="menuToggle">menu</span>
+  <h1 class="title">TimeSphere</h1>
+  <div class="right">
+    <div class="clock" id="clock">--:--</div>
+    <div class="logout-btn" id="logoutBtn">Logout</div>
+  </div>
+</header>
+
+<nav id="sideMenu" aria-hidden="true">
+  <a href="/home/dashboard/"><span class="material-icons">home</span>Dashboard</a>
+  <a href="/home/dashboard/users/"><span class="material-icons">group</span>Users</a>
+  <a href="/home/dashboard/groups/"><span class="material-icons">groups</span>Groups</a>
+  <a href="/home/dashboard/create/"><span class="material-icons">add_circle</span>Create</a>
+  <a href="/home/dashboard/user-storage/"><span class="material-icons">storage</span>Storage</a>
+  <a href="/home/dashboard/coins/"><span class="material-icons">paid</span>Coins</a>
+  <a href="/home/dashboard/quests-and-rewards/"><span class="material-icons">emoji_events</span>Quests</a>
+  <a href="/home/dashboard/settings/"><span class="material-icons">settings</span>Settings</a>
+</nav>
+<div id="menuOverlay"></div>
+
+<main>
+  <div class="container">
+    <div class="card">
+      <div class="heading">
+        <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+          <a class="back-btn" href="/home/dashboard/settings/more/" id="backBtn">
+            <span class="material-icons">arrow_back</span>
+            <span>Back</span>
+          </a>
+          <h2 style="margin:0 0 0 8px;">Platform Rules & Terms of Use</h2>
+        </div>
+        <div class="muted">Please read these rules carefully — they govern allowed behavior on TimeSphere.</div>
+      </div>
+
+      <div class="rules">
+        <p>Below are the platform rules (detailed). By using TimeSphere and maintaining an account you automatically accept and agree to follow these rules. Violations may result in warnings, temporary suspension or permanent bans as described at the end of this document.</p>
+
+        <ol>
+          <li><strong>Respect other users.</strong> Harassment, hate speech, threats, stalking, doxxing, or any form of abusive behavior toward other users is strictly prohibited.</li>
+
+          <li><strong>No spam or mass posting.</strong> Do not post repetitive, irrelevant, or unsolicited content, links or advertisements in public pages or shared items; keep posts meaningful and relevant.</li>
+
+          <li><strong>No impersonation.</strong> Do not impersonate other users, staff, or public figures in a way that misleads or harms others.</li>
+
+          <li><strong>No creation of offensive content.</strong> Content that is sexually explicit, violent, or otherwise clearly intended to shock or offend is not allowed when it targets people or communities.</li>
+
+          <li><strong>No copyright infringement.</strong> Upload only content you own or are licensed to use. Repost protected works without permission is forbidden.</li>
+
+          <li><strong>No circumvention of limits.</strong> Do not attempt to bypass account, storage or rate limits by creating multiple accounts, automation, or scripts. If you need more capacity, contact support.</li>
+
+          <li><strong>No exploitation of glitches or bugs.</strong> Deliberately using, sharing or profiting from software glitches, unfinished features, exploits, or other unintended behavior is forbidden. If you find a bug, disclose it via the proper support channel instead of abusing it.</li>
+
+          <li><strong>No malicious code or file uploads.</strong> Files or content that include malware, trackers, or obfuscated code meant to damage or compromise systems are strictly prohibited.</li>
+
+          <li><strong>No fraud, scamming or social engineering.</strong> Any attempt to mislead users into sending money, account details or other valuables is banned.</li>
+
+          <li><strong>No automated scraping or harvesting.</strong> Scraping, automated collection of user data, or bulk export of content without express permission is not allowed.</li>
+
+          <li><strong>Respect privacy.</strong> Do not publish other users’ private data (emails, addresses, phone numbers, private messages) without explicit consent.</li>
+
+          <li><strong>No marketplace abuse.</strong> If a marketplace exists, do not manipulate prices, create fake purchases, or attempt to inflate rewards or reputation.</li>
+
+          <li><strong>No cheating or reward manipulation.</strong> Attempting to manipulate quests, daily rewards, leaderboards, rewards, or coin balances (including via client modification or transaction replay) is prohibited.</li>
+
+          <li><strong>One account per person (unless permitted).</strong> Unless explicitly allowed, using multiple accounts to gain advantage, avoid bans or to farm coins/items is forbidden.</li>
+
+          <li><strong>No sexual or illegal content featuring minors.</strong> Absolutely prohibited and subject to immediate permanent ban and reporting to authorities when required by law.</li>
+
+          <li><strong>Be truthful about identity when requested for verification.</strong> During account verification or moderation requests, providing false information or refusing reasonable verification may lead to suspension.</li>
+
+          <li><strong>No resale or distribution of copyrighted materials.</strong> Selling, distributing or otherwise monetizing content that infringes copyrights is not allowed.</li>
+
+          <li><strong>Follow community channels & moderator instructions.</strong> If moderators or staff instruct you to stop a behavior, comply. Repeated refusal may escalate to stronger penalties.</li>
+
+          <li><strong>No targeted harassment campaigns.</strong> Organized attempts to harass or gang-up on a user or group are strictly disallowed.</li>
+
+          <li><strong>No buying, selling or trading of accounts.</strong> Accounts are non-transferable; selling or gifting of accounts to bypass sanctions or limits is forbidden.</li>
+
+          <li><strong>Use of nicknames and naming rules.</strong> Display names that impersonate staff, or contain offensive words, slurs or illegal encouragement are not allowed. Follow naming conventions when enforced.</li>
+
+          <li><strong>Content moderation & appeals.</strong> Moderators can remove content that violates these rules. If your content is removed you may appeal via the official support or Discord channels; appeals do not guarantee reinstatement.</li>
+
+          <li><strong>Age and legality.</strong> You must comply with age restrictions and local law to use the platform. If local laws prohibit your actions here, you must not do them.</li>
+
+          <li><strong>No financial fraud.</strong> Attempting chargeback fraud, false disputes, or other payment scams is strictly prohibited and will be escalated.</li>
+
+          <li><strong>Respect rate limits & API terms.</strong> If you use an API or integrations, abide by rate limits, usage terms, and authorized access only.</li>
+
+          <li><strong>Do not attempt to alter platform logs or timestamps.</strong> Tampering with logs, timestamps or audit trails to conceal actions is forbidden and will be treated as malicious.</li>
+
+          <li><strong>Reporting security issues.</strong> If you find a security vulnerability, report it privately through our support or Discord moderation team; do not publish details or exploit it.</li>
+
+          <li><strong>Community contribution and moderation.</strong> If you volunteer as a moderator or helper, you must act fairly and transparently. Abuse of moderator privileges is a serious violation.</li>
+
+          <li><strong>Respect third-party services and links.</strong> Linking to illegal downloads, pirated content, or malicious sites is prohibited.</li>
+
+          <li><strong>Language & public chat behavior.</strong> Keep language reasonably civil in public channels; profanity directly aimed to harass can be moderated.</li>
+        </ol>
+
+        <div class="footer-note">
+          <p class="important">Acceptance & Enforcement —</p>
+          <p>By creating and keeping an account on TimeSphere you automatically accept this Rules & Terms document and agree to comply. Violations may result in: warnings, temporary suspension, permanent ban (account removal), and in extreme or repeated cases we may block associated IP addresses or related accounts.</p>
+
+          <p>Before suspension, if you are a member of our Discord community, moderators will typically issue a formal warning on our server. Warnings and infractions are posted in the channel <strong>#user-warns</strong> (or other moderation channel) to help keep moderation transparent. If you do not comply after warnings or if a violation is severe, immediate suspension or ban may be applied without prior informal notice.</p>
+
+          <p class="important">Final note:</p>
+          <p>The platform reserves the right to update these rules at any time. You are encouraged to check for updates periodically. Continued use of the service after a rule update means you agree to the new terms.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<script>
+  // UI interactions: menu toggle, overlay, header clock, back button link is an anchor so it works naturally.
+  const menuToggle = document.getElementById('menuToggle');
+  const sideMenu = document.getElementById('sideMenu');
+  const menuOverlay = document.getElementById('menuOverlay');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const clockEl = document.getElementById('clock');
+
+  if(menuToggle && sideMenu && menuOverlay){
+    menuToggle.addEventListener('click', ()=>{ sideMenu.classList.add('open'); menuOverlay.classList.add('show'); });
+    menuOverlay.addEventListener('click', ()=>{ sideMenu.classList.remove('open'); menuOverlay.classList.remove('show'); });
+    document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape'){ sideMenu.classList.remove('open'); menuOverlay.classList.remove('show'); }});
+  }
+
+  if(logoutBtn) logoutBtn.addEventListener('click', ()=>{ location.href = '/login/index.html'; });
+
+  // header clock showing Europe/London time
+  function updateHeaderClock(){
+    const now = new Date();
+    try {
+      const options = { hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit', timeZone:'Europe/London' };
+      clockEl.textContent = new Intl.DateTimeFormat('en-GB', options).format(now);
+    } catch(e){
+      clockEl.textContent = now.toLocaleTimeString('en-GB', {hour12:false});
+    }
+  }
+  setInterval(updateHeaderClock,1000);
+  updateHeaderClock();
+
+  // optional: focus first content area for accessibility
+  window.addEventListener('load', ()=> {
+    const firstHeading = document.querySelector('.rules h2') || document.querySelector('.heading h2');
+    if(firstHeading) firstHeading.setAttribute('tabindex','-1');
+  });
+</script>
+</body>
+  </html>
