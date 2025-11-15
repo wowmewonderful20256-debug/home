@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>TimeSphere | Updates & Rules</title>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    /* --- Keep styles identical to settings page --- */
+    :root { --card-bg: rgba(255,255,255,0.08); --card-bg-2: rgba(255,255,255,0.12); --accent: #ff8a00; --accent-2:#e52e71; }
+    body { margin:0; font-family:'Poppins',sans-serif; background: linear-gradient(135deg,#5d54a4,#7c78b8); color:#fff; overflow-x:hidden;}
+    header { display:flex; justify-content:space-between; align-items:center; padding:1rem 2rem; background: rgba(255,255,255,0.1); backdrop-filter: blur(8px); position:fixed; width:100%; top:0; z-index:10; }
+    .menu-btn { font-size:2rem; cursor:pointer; transition: transform .3s; } .menu-btn:hover { transform:scale(1.06); }
+    .title { font-weight:600; font-size:1.4rem; }
+    .right { display:flex; align-items:center; gap:1rem; }
+    .clock, .logout-btn { font-weight:600; }
+    .logout-btn { cursor:pointer; background: rgba(255,255,255,0.15); padding:0.5rem 1rem; border-radius:8px; transition: background .2s; }
+    .logout-btn:hover { background: rgba(255,255,255,0.28); }
+
+    /* side menu */
+    #sideMenu { position:fixed; top:0; left:-260px; width:260px; height:100%; background: rgba(0,0,0,0.32); backdrop-filter: blur(8px); padding-top:4rem; transition:left .35s; z-index:20; }
+    #sideMenu.open { left:0; }
+    #sideMenu a { display:flex; align-items:center; gap:1rem; padding:1rem 1.25rem; color:white; text-decoration:none; transition: background .18s; }
+    #sideMenu a:hover { background: rgba(255,255,255,0.06); }
+    #menuOverlay { display:none; position:fixed; inset:0; background: rgba(0,0,0,0.32); z-index:15; }
+    #menuOverlay.show { display:block; }
+
+    main { margin-top:90px; padding:2rem; display:flex; flex-direction:column; gap:1.5rem; align-items:center; }
+    .container { width:90%; max-width:1000px; }
+    .card { width:100%; background:var(--card-bg); border-radius:18px; padding:20px; box-shadow: 0 8px 30px rgba(0,0,0,0.25); }
+
+    .heading { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
+    .heading h2 { margin:0; font-size:1.25rem; }
+
+    /* tabs */
+    .tabs { display:flex; gap:8px; margin-bottom:14px; }
+    .tab {
+      display:flex; gap:8px; align-items:center;
+      padding:10px 12px; border-radius:12px; cursor:pointer;
+      background: transparent; color: #fff; border: 1px solid rgba(255,255,255,0.04);
+      transition: background .18s, color .18s;
+      text-decoration:none;
+    }
+    .tab .icon { font-size:18px; opacity:0.95; display:inline-flex; align-items:center; justify-content:center; }
+    .tab .txt { font-weight:600; }
+    .tab.active {
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      color: #000;
+      box-shadow: 0 8px 22px rgba(0,0,0,0.3);
+    }
+
+    /* content area */
+    .settings-grid { display:grid; grid-template-columns: 1fr; gap:16px; }
+    .btn { padding:12px 16px; border-radius:10px; cursor:pointer; border:none; font-weight:700; }
+    .btn-rules { background: rgba(255,255,255,0.12); color:#fff; transition:.2s; }
+    .btn-rules:hover { background: rgba(255,255,255,0.24); }
+    .btn-updates { background: rgba(255,255,255,0.12); color:#fff; transition:.2s; }
+    .btn-updates:hover { background: rgba(255,255,255,0.24); }
+
+    @media (max-width:700px){ .tabs { flex-wrap:wrap; } }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="menu-btn material-icons" id="menuToggle">menu</span>
+    <h1 class="title">TimeSphere</h1>
+    <div class="right">
+      <div class="clock" id="clock">--:--</div>
+      <div class="logout-btn" id="logoutBtn">Logout</div>
+    </div>
+  </header>
+
+  <nav id="sideMenu">
+    <a href="/home/dashboard/"><span class="material-icons">home</span>Dashboard</a>
+    <a href="/home/dashboard/users/"><span class="material-icons">group</span>Users</a>
+    <a href="/home/dashboard/groups/"><span class="material-icons">groups</span>Groups</a>
+    <a href="/home/dashboard/create/"><span class="material-icons">add_circle</span>Create</a>
+    <a href="/home/dashboard/user-storage/"><span class="material-icons">storage</span>Storage</a>
+    <a href="/home/dashboard/coins/"><span class="material-icons">paid</span>Coins</a>
+    <a href="/home/dashboard/quests-and-rewards/"><span class="material-icons">emoji_events</span>Quests</a>
+    <a href="/home/dashboard/settings/"><span class="material-icons">settings</span>Settings</a>
+  </nav>
+  <div id="menuOverlay"></div>
+
+  <main>
+    <div class="container">
+      <div class="card">
+        <div class="heading">
+          <h2>Updates & Rules</h2>
+          <div class="muted">Page with latest site rules and updates</div>
+        </div>
+
+        <!-- TAB BAR -->
+        <div class="tabs">
+          <a class="tab" href="/home/dashboard/settings/" title="Account Settings">
+            <span class="icon material-icons">settings</span>
+            <span class="txt">Account Settings</span>
+          </a>
+          <div class="tab active" data-tab="updates" role="tab" aria-selected="true" title="Updates & Rules">
+            <span class="icon material-icons">article</span>
+            <span class="txt">Updates / Rules</span>
+          </div>
+          <a class="tab" href="/home/dashboard/settings/help/" title="Help">
+            <span class="icon material-icons">help_outline</span>
+            <span class="txt">Help</span>
+          </a>
+          <a class="tab" href="/home/dashboard/settings/faq/" title="FAQ">
+            <span class="icon material-icons">info</span>
+            <span class="txt">FAQ</span>
+          </a>
+        </div>
+
+        <!-- CONTENT -->
+        <div id="tabContent" class="settings-grid">
+          <button class="btn btn-rules" onclick="location.href='/home/dashboard/settings/more/rules.html'">View Rules (English)</button>
+          <button class="btn btn-updates" onclick="location.href='/home/dashboard/settings/more/updates.html'">View Updates / Changelog</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBiGzil9wA3CXZWxWjHsn7iKPkiYQozQW8",
+      authDomain: "timesphere-9f7e0.firebaseapp.com",
+      projectId: "timesphere-9f7e0",
+      storageBucket: "timesphere-9f7e0.appspot.com",
+      messagingSenderId: "94629610195",
+      appId: "1:94629610195:web:a037e5c5aa0c5ba7e50a26"
+    };
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    const menuToggle = document.getElementById('menuToggle');
+    const sideMenu = document.getElementById('sideMenu');
+    const menuOverlay = document.getElementById('menuOverlay');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const clockEl = document.getElementById('clock');
+
+    function updateHeaderClock(){
+      const now = new Date();
+      try {
+        const options = { hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit', timeZone:'Europe/London' };
+        clockEl.textContent = new Intl.DateTimeFormat('en-GB', options).format(now);
+      } catch(e){
+        clockEl.textContent = now.toLocaleTimeString('en-GB', {hour12:false});
+      }
+    }
+    setInterval(updateHeaderClock,1000);
+    updateHeaderClock();
+
+    if(menuToggle && sideMenu && menuOverlay){
+      menuToggle.addEventListener('click', ()=>{ sideMenu.classList.add('open'); menuOverlay.classList.add('show'); });
+      menuOverlay.addEventListener('click', ()=>{ sideMenu.classList.remove('open'); menuOverlay.classList.remove('show'); });
+    }
+
+    if(logoutBtn){
+      logoutBtn.addEventListener('click', ()=>{ location.href = '/login/index.html'; });
+    }
+
+    // simple auth guard
+    onAuthStateChanged(auth, user => {
+      if(!user) location.href = '/login/index.html';
+    });
+  </script>
+</body>
+  </html>
