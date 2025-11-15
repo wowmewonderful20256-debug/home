@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TimeSphere | FAQ</title>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  /* --- Styles identical to previous pages --- */
+  :root { --card-bg: rgba(255,255,255,0.08); --card-bg-2: rgba(255,255,255,0.12); --accent: #ff8a00; --accent-2:#e52e71; }
+  body { margin:0; font-family:'Poppins',sans-serif; background: linear-gradient(135deg,#5d54a4,#7c78b8); color:#fff; overflow-x:hidden;}
+  header { display:flex; justify-content:space-between; align-items:center; padding:1rem 2rem; background: rgba(255,255,255,0.1); backdrop-filter: blur(8px); position:fixed; width:100%; top:0; z-index:10; }
+  .menu-btn { font-size:2rem; cursor:pointer; transition: transform .3s; } .menu-btn:hover { transform:scale(1.06); }
+  .title { font-weight:600; font-size:1.4rem; }
+  .right { display:flex; align-items:center; gap:1rem; }
+  .clock, .logout-btn { font-weight:600; }
+  .logout-btn { cursor:pointer; background: rgba(255,255,255,0.15); padding:0.5rem 1rem; border-radius:8px; transition: background .2s; }
+  .logout-btn:hover { background: rgba(255,255,255,0.28); }
+
+  #sideMenu { position:fixed; top:0; left:-260px; width:260px; height:100%; background: rgba(0,0,0,0.32); backdrop-filter: blur(8px); padding-top:4rem; transition:left .35s; z-index:20; }
+  #sideMenu.open { left:0; }
+  #sideMenu a { display:flex; align-items:center; gap:1rem; padding:1rem 1.25rem; color:white; text-decoration:none; transition: background .18s; }
+  #sideMenu a:hover { background: rgba(255,255,255,0.06); }
+  #menuOverlay { display:none; position:fixed; inset:0; background: rgba(0,0,0,0.32); z-index:15; }
+  #menuOverlay.show { display:block; }
+
+  main { margin-top:90px; padding:2rem; display:flex; flex-direction:column; gap:1.5rem; align-items:center; }
+  .container { width:90%; max-width:1000px; }
+  .card { width:100%; background:var(--card-bg); border-radius:18px; padding:20px; box-shadow: 0 8px 30px rgba(0,0,0,0.25); }
+
+  .heading { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
+  .heading h2 { margin:0; font-size:1.25rem; }
+
+  /* tabs */
+  .tabs { display:flex; gap:8px; margin-bottom:14px; }
+  .tab {
+    display:flex; gap:8px; align-items:center;
+    padding:10px 12px; border-radius:12px; cursor:pointer;
+    background: transparent; color: #fff; border: 1px solid rgba(255,255,255,0.04);
+    transition: background .18s, color .18s;
+    text-decoration:none;
+  }
+  .tab .icon { font-size:18px; opacity:0.95; display:inline-flex; align-items:center; justify-content:center; }
+  .tab .txt { font-weight:600; }
+  .tab.active {
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    color: #000;
+    box-shadow: 0 8px 22px rgba(0,0,0,0.3);
+  }
+
+  /* FAQ content */
+  .faq-item { background: var(--card-bg-2); border-radius:12px; padding:12px; margin-bottom:10px; cursor:pointer; }
+  .faq-item:hover { background: rgba(255,255,255,0.15); }
+  .faq-question { display:flex; justify-content:space-between; align-items:center; font-weight:600; }
+  .faq-answer { display:none; margin-top:8px; padding-left:8px; color: #ccc; }
+</style>
+</head>
+<body>
+<header>
+  <span class="menu-btn material-icons" id="menuToggle">menu</span>
+  <h1 class="title">TimeSphere</h1>
+  <div class="right">
+    <div class="clock" id="clock">--:--</div>
+    <div class="logout-btn" id="logoutBtn">Logout</div>
+  </div>
+</header>
+
+<nav id="sideMenu">
+  <a href="/home/dashboard/"><span class="material-icons">home</span>Dashboard</a>
+  <a href="/home/dashboard/users/"><span class="material-icons">group</span>Users</a>
+  <a href="/home/dashboard/groups/"><span class="material-icons">groups</span>Groups</a>
+  <a href="/home/dashboard/create/"><span class="material-icons">add_circle</span>Create</a>
+  <a href="/home/dashboard/user-storage/"><span class="material-icons">storage</span>Storage</a>
+  <a href="/home/dashboard/coins/"><span class="material-icons">paid</span>Coins</a>
+  <a href="/home/dashboard/quests-and-rewards/"><span class="material-icons">emoji_events</span>Quests</a>
+  <a href="/home/dashboard/settings/"><span class="material-icons">settings</span>Settings</a>
+</nav>
+<div id="menuOverlay"></div>
+
+<main>
+  <div class="container">
+    <div class="card">
+      <div class="heading">
+        <h2>FAQ</h2>
+        <div class="muted">Frequently Asked Questions</div>
+      </div>
+
+      <!-- TAB BAR -->
+      <div class="tabs">
+        <a class="tab" href="/home/dashboard/settings/">
+          <span class="icon material-icons">settings</span>
+          <span class="txt">Account Settings</span>
+        </a>
+        <a class="tab" href="/home/dashboard/settings/more/">
+          <span class="icon material-icons">article</span>
+          <span class="txt">Updates / Rules</span>
+        </a>
+        <a class="tab" href="/home/dashboard/settings/help/">
+          <span class="icon material-icons">help_outline</span>
+          <span class="txt">Help</span>
+        </a>
+        <div class="tab active" data-tab="faq" role="tab" aria-selected="true">
+          <span class="icon material-icons">info</span>
+          <span class="txt">FAQ</span>
+        </div>
+      </div>
+
+      <!-- FAQ CONTENT -->
+      <div id="tabContent" class="settings-grid">
+        <div class="faq-item">
+          <div class="faq-question">How To Make Countdown, Clock etc.? <span class="material-icons">expand_more</span></div>
+          <div class="faq-answer">To create a countdown or clock, navigate to the 'Create' page and fill out the required fields such as name, time zone, and theme. Then click 'Create'.</div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">Creating Countdown is cost? <span class="material-icons">expand_more</span></div>
+          <div class="faq-answer">Creating a countdown or clock does not cost coins, but it uses your storage allocation. Make sure you have available storage space.</div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">How To Unlock Quest? <span class="material-icons">expand_more</span></div>
+          <div class="faq-answer">Quests are unlocked automatically as you progress on the platform. Complete previous quests to unlock new ones.</div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">What Daily Rewards Works? <span class="material-icons">expand_more</span></div>
+          <div class="faq-answer">Daily rewards provide coins and items once per day. Make sure to claim them daily. They reset at midnight UTC.</div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">Account Limits? <span class="material-icons">expand_more</span></div>
+          <div class="faq-answer">Each account has limits on the number of clocks, counters, and items to prevent abuse. This ensures fair usage for all users.</div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">How To Share Countdown or Clock? <span class="material-icons">expand_more</span></div>
+          <div class="faq-answer">You can share your countdown or clock via the 'Share' button. It copies a link to your clipboard or lets you share it directly on Discord.</div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">What Happens If Storage Limit Exceeded? <span class="material-icons">expand_more</span></div>
+          <div class="faq-answer">If your storage usage exceeds the allowed limit, you cannot create new items until you free up space or upgrade your storage.</div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">How To Change Account Settings? <span class="material-icons">expand_more</span></div>
+          <div class="faq-answer">Go to 'Account Settings' tab to change your password, theme, and other settings. Some features are coming soon.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBiGzil9wA3CXZWxWjHsn7iKPkiYQozQW8",
+    authDomain: "timesphere-9f7e0.firebaseapp.com",
+    projectId: "timesphere-9f7e0",
+    storageBucket: "timesphere-9f7e0.appspot.com",
+    messagingSenderId: "94629610195",
+    appId: "1:94629610195:web:a037e5c5aa0c5ba7e50a26"
+  };
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+
+  const menuToggle = document.getElementById('menuToggle');
+  const sideMenu = document.getElementById('sideMenu');
+  const menuOverlay = document.getElementById('menuOverlay');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const clockEl = document.getElementById('clock');
+
+  function updateHeaderClock(){
+    const now = new Date();
+    try {
+      const options = { hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit', timeZone:'Europe/London' };
+      clockEl.textContent = new Intl.DateTimeFormat('en-GB', options).format(now);
+    } catch(e){
+      clockEl.textContent = now.toLocaleTimeString('en-GB', {hour12:false});
+    }
+  }
+  setInterval(updateHeaderClock,1000);
+  updateHeaderClock();
+
+  if(menuToggle && sideMenu && menuOverlay){
+    menuToggle.addEventListener('click', ()=>{ sideMenu.classList.add('open'); menuOverlay.classList.add('show'); });
+    menuOverlay.addEventListener('click', ()=>{ sideMenu.classList.remove('open'); menuOverlay.classList.remove('show'); });
+  }
+
+  if(logoutBtn){
+    logoutBtn.addEventListener('click', ()=>{ location.href = '/login/index.html'; });
+  }
+
+  onAuthStateChanged(auth, user => { if(!user) location.href = '/login/index.html'; });
+
+  // FAQ toggle
+  document.querySelectorAll('.faq-item').forEach(item=>{
+    const question = item.querySelector('.faq-question');
+    question.addEventListener('click', ()=>{
+      const answer = item.querySelector('.faq-answer');
+      answer.style.display = answer.style.display==='block'?'none':'block';
+      question.querySelector('.material-icons').textContent = answer.style.display==='block'?'expand_less':'expand_more';
+    });
+  });
+</script>
+</body>
+  </html>
