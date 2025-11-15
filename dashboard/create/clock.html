@@ -368,7 +368,7 @@ if (createBtn) {
         ownerUid: user.uid,
         createdAt: new Date().toISOString()
       });
-      await updateQuestProgress(currentUser.uid, "Create clock", 1);
+      await updateQuestProgress(user.uid, "Create clock", 1);
       window.location.href = `/home/dashboard/clock.html?id=${docRef.id}`;
     } catch (e) {
       alert('Creation failed: ' + (e.message || e));
