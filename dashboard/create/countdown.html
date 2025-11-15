@@ -150,7 +150,7 @@
       getFirestore, doc, setDoc, getDoc, serverTimestamp
     } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
-    import { updateQuestProgress } from "https://wowmewonderful20256-debug/main/dashboard/quest-and-rewards/quest.js";
+    import { updateQuestProgress } from "https://wowmewonderful20256-debug.github.io/home/dashboard/quest-and-rewards/quest.js";
 
     // firebase config (same as other pages)
     const firebaseConfig = {
@@ -293,8 +293,6 @@
     // inputs change handlers
     [dateInput, timeInput, tzSelect].forEach(el => el.addEventListener('input', updatePreview));
     nameInput.addEventListener('input', ()=>{ liveName.textContent = nameInput.value || '—'; });
-
-    await updateQuestProgress(currentUid, "Create Countdown", 1);
     
     // ensure user is authenticated and then enable create
     let currentUser = null;
@@ -351,6 +349,11 @@
           type: 'countdown',
           createdAt: serverTimestamp()
         };
+
+        
+    await updateQuestProgress(currentUid, "Create Countdown", 1);
+
+        
         // create document with id = uniqueId
         await setDoc(doc(db, 'countdowns', uniqueId), payload);
         // redirect to countdown page
