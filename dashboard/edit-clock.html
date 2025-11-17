@@ -429,6 +429,9 @@
           timeZone: String(tzSelect.value),
           theme: String(themeSelect.value)
         });
+
+        await updateQuestProgress(currentUser.uid, "Edit clock", 1);
+    
         // redirect to view
         location.href = `/home/dashboard/clock.html?id=${encodeURIComponent(clockId)}`;
       } catch (e) {
