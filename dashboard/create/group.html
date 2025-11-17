@@ -194,6 +194,8 @@ createBtn.addEventListener('click', async () => {
       createdAt: new Date().toISOString()
     });
 
+    await updateQuestProgress(currentUser.uid, "Create Group", 1);
+  
     // redirect to group page by name (matching other pages)
     window.location.href = `/home/dashboard/groups/group.html?name=${encodeURIComponent(title)}`;
   } catch (err) {
