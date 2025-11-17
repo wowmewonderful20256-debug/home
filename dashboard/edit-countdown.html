@@ -170,6 +170,9 @@ saveBtn.addEventListener('click', async ()=>{
     timeZone: timeZoneSelect.value,
     color: selectedColor
   });
+
+  await updateQuestProgress(currentUser.uid, "Edit Countdown", 1);
+  
   window.location.href = `/home/dashboard/view_countdown.html?name=${encodeURIComponent(countdownId)}`;
 });
 </script>
