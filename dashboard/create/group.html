@@ -4,6 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>TimeSphere | Create Group</title>
+  <link rel="icon" href="https://timesphere-cloud.github.io/home/data/time_sphere_icon.ico">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
 <style>
@@ -85,7 +86,7 @@
   <a href="/home/dashboard/"><span class="material-icons">home</span>Dashboard</a>
   <a href="/home/dashboard/users/"><span class="material-icons">group</span>Users</a>
   <a href="/home/dashboard/groups/"><span class="material-icons">groups</span>Groups</a>
-  <a href="/home/dashboard/create/"><span class="material-icons">add_circle</span>Create</a>
+  <a href="/home/dashboard/create-new-item/"><span class="material-icons">add_circle</span>Create</a>
   <a href="/home/dashboard/user-storage/"><span class="material-icons">storage</span>Storage</a>
   <a href="/home/dashboard/coins/"><span class="material-icons">paid</span>Coins</a>
   <a href="/home/dashboard/quest-and-rewards/"><span class="material-icons">emoji_events</span>Quests</a>
@@ -193,7 +194,7 @@ createBtn.addEventListener('click', async () => {
   if (!title) { alert('Enter group title'); return; }
 
   const user = auth.currentUser;
-  if (!user) { alert('Not signed in'); window.location.href = '/login/index.html'; return; }
+  if (!user) { alert('Not signed in'); window.location.href = '/home/login/'; return; }
 
   try {
     // use the title as document ID (so group pages can lookup by name param)
@@ -217,7 +218,7 @@ createBtn.addEventListener('click', async () => {
     await updateQuestProgress(user.uid, "Create Group", 1);
   
     // redirect to group page by name (matching other pages)
-    window.location.href = `/home/dashboard/groups/group.html?name=${encodeURIComponent(title)}`;
+    window.location.href = `/home/dashboard/groups/group?name=${encodeURIComponent(title)}`;
   } catch (err) {
     console.error('Create group failed:', err);
     alert('Failed to create group: ' + (err.message || err));
@@ -226,7 +227,7 @@ createBtn.addEventListener('click', async () => {
 
 // ensure user logged in
 onAuthStateChanged(auth, user => {
-  if (!user) window.location.href = '/login/index.html';
+  if (!user) window.location.href = '/home/login/';
 });
 </script>
 </body>
