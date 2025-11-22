@@ -165,6 +165,26 @@ const createBtn = document.getElementById('createBtn');
 titleInput.addEventListener('input', ()=>{ titlePreview.textContent = "Title preview: " + (titleInput.value.trim() || '—'); });
 descInput.addEventListener('input', ()=>{ descPreview.textContent = "Description preview: " + (descInput.value.trim() || '—'); });
 
+  // Funkcja do aktualizacji progress questa
+async function updateQuestProgress(uid, questId, incrementBy = 1) {
+  const uqRef = doc(db, 'user_quests', `${uid}_${questId}`);
+  const snap = await getDoc(uqRef);
+
+  if (!snap.exists()) {
+    // jeśli jeszcze nie ma progressu, tworzysz dokument
+    await setDoc(uqRef, {
+      uid: uid,
+      questId: questId,
+      doneCount: incrementBy,
+      total: 1,
+      claimed: false
+    });
+  } else {
+    // jeśli jest, zwiększamy licznik
+    await updateDoc(uqRef, { doneCount: increment(incrementBy) });
+  }
+  }
+  
 // Create group in collection "group" with document id = group title (safe: check exist)
 createBtn.addEventListener('click', async () => {
   const title = titleInput.value.trim();
