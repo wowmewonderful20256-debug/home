@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>TimeSphere | Create</title>
+  <link rel="icon" href="https://timesphere-cloud.github.io/home/data/time_sphere_icon.ico">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
   <style>
@@ -113,10 +114,10 @@
     <a href="/home/dashboard/"><span class="material-icons">home</span>Dashboard</a>
     <a href="/home/dashboard/users/"><span class="material-icons">group</span>Users</a>
     <a href="/home/dashboard/groups/"><span class="material-icons">groups</span>Groups</a>
-    <a href="/home/dashboard/create/"><span class="material-icons">add_circle</span>Create</a>
+    <a href="/home/dashboard/create-new-item/"><span class="material-icons">add_circle</span>Create</a>
     <a href="/home/dashboard/user-storage/"><span class="material-icons">storage</span>Storage</a>
     <a href="/home/dashboard/coins/"><span class="material-icons">paid</span>Coins</a>
-    <a href="/home/dashboard/quests-and-rewards/"><span class="material-icons">emoji_events</span>Quests</a>
+    <a href="/home/dashboard/quest-and-rewards/"><span class="material-icons">emoji_events</span>Quests</a>
     <a href="/home/dashboard/settings/"><span class="material-icons">settings</span>Settings</a>
   </nav>
   <div id="menuOverlay"></div>
@@ -129,7 +130,7 @@
       </div>
 
       <div class="create-grid">
-        <a class="create-item" href="/home/dashboard/create/countdown.html" title="Create Countdown">
+        <a class="create-item" href="/home/dashboard/create/countdown" title="Create Countdown">
           <div class="ci-top">
             <div class="ci-icon"><span class="material-icons">timer</span></div>
             <div>
@@ -139,7 +140,7 @@
           </div>
         </a>
 
-        <a class="create-item" href="/home/dashboard/create/clock.html" title="Create Clock">
+        <a class="create-item" href="/home/dashboard/create/clock" title="Create Clock">
           <div class="ci-top">
             <div class="ci-icon"><span class="material-icons">watch</span></div>
             <div>
@@ -149,7 +150,7 @@
           </div>
         </a>
 
-        <a class="create-item" href="/home/dashboard/create/time.html" title="Create Current Time">
+        <a class="create-item" href="/home/dashboard/create/time" title="Create Current Time">
           <div class="ci-top">
             <div class="ci-icon"><span class="material-icons">schedule</span></div>
             <div>
@@ -159,7 +160,7 @@
           </div>
         </a>
 
-        <a class="create-item" href="/home/dashboard/create/group_make.html" title="Create Group">
+        <a class="create-item" href="/home/dashboard/create/group/" title="Create Group">
           <div class="ci-top">
             <div class="ci-icon"><span class="material-icons">group_add</span></div>
             <div>
@@ -214,7 +215,7 @@
     // Logout button
     document.getElementById('logoutBtn').addEventListener('click', async () => {
       await signOut(auth);
-      window.location.href = '/login/index.html';
+      window.location.href = '/home/login/';
     });
 
     // Optional: redirect to login if not authenticated (keeps behavior consistent with other pages)
@@ -222,7 +223,7 @@
       if (!user) {
         // not logged in -> redirect to login
         // comment out if you want create page public
-        window.location.href = '/login/index.html';
+        window.location.href = '/home/login/';
       }
     });
   </script>
