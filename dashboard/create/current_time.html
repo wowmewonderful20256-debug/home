@@ -268,7 +268,7 @@
           createdAt: new Date().toISOString()
         });
 
-        await updateQuestProgress(currentUser.uid, "Create Time", 1);
+        await updateQuestProgress(user.uid, "Create Time", 1);
     
         // redirect to view page (consistent path)
         window.location.href = `/home/dashboard/time.html?id=${encodeURIComponent(docRef.id)}`;
