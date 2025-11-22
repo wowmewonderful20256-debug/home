@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>TimeSphere | Create Current Time</title>
+  <link rel="icon" href="https://timesphere-cloud.github.io/home/data/time_sphere_icon.ico">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
   <style>
@@ -112,10 +113,10 @@
     <a href="/home/dashboard/"><span class="material-icons">home</span>Dashboard</a>
     <a href="/home/dashboard/users/"><span class="material-icons">group</span>Users</a>
     <a href="/home/dashboard/groups/"><span class="material-icons">groups</span>Groups</a>
-    <a href="/home/dashboard/create/"><span class="material-icons">add_circle</span>Create</a>
+    <a href="/home/dashboard/create-new-item/"><span class="material-icons">add_circle</span>Create</a>
     <a href="/home/dashboard/user-storage/"><span class="material-icons">storage</span>Storage</a>
     <a href="/home/dashboard/coins/"><span class="material-icons">paid</span>Coins</a>
-    <a href="/home/dashboard/quests-and-rewards/"><span class="material-icons">emoji_events</span>Quests</a>
+    <a href="/home/dashboard/quest-and-rewards/"><span class="material-icons">emoji_events</span>Quests</a>
     <a href="/home/dashboard/settings/"><span class="material-icons">settings</span>Settings</a>
   </nav>
   <div id="menuOverlay" tabindex="-1"></div>
@@ -204,7 +205,7 @@
     }
 
     // Logout
-    $('logoutBtn')?.addEventListener('click', ()=>{ auth.signOut?.(); window.location.href = '/login/index.html'; });
+    $('logoutBtn')?.addEventListener('click', ()=>{ auth.signOut?.(); window.location.href = '/home/login/'; });
 
     // Populate timezone offsets +14 ... -12
     const tzSelect = $('tzOffset');
@@ -246,7 +247,7 @@
     onAuthStateChanged(auth, user => {
       if(!user){
         // redirect to login if not authenticated
-        try { window.location.href = '/login/index.html'; } catch(e) {}
+        try { window.location.href = '/home/login/'; } catch(e) {}
       }
     });
 
@@ -290,7 +291,7 @@ async function updateQuestProgress(uid, questId, incrementBy = 1) {
         await updateQuestProgress(user.uid, "Create Time", 1);
     
         // redirect to view page (consistent path)
-        window.location.href = `/home/dashboard/time.html?id=${encodeURIComponent(docRef.id)}`;
+        window.location.href = `/home/dashboard/time?id=${encodeURIComponent(docRef.id)}`;
       } catch (err) {
         console.error(err);
         alert('Failed to create: ' + (err.message || err));
