@@ -727,32 +727,6 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 /* ---------------- Lightweight console to on-page debug mapping (optional) ---------------- */
-(function(){
-  try{
-    const div = document.getElementById('debugConsole');
-    if(!div) return;
-    const origLog = console.log;
-    const origErr = console.error;
-    console.log = (...args)=>{
-      origLog(...args);
-      const msg = args.map(a=>typeof a==='object'?JSON.stringify(a):a).join(' ');
-      const el = document.createElement('div');
-      el.style.color = '#0f0';
-      el.textContent = `[LOG] ${msg}`;
-      div.appendChild(el);
-      div.scrollTop = div.scrollHeight;
-    };
-    console.error = (...args)=>{
-      origErr(...args);
-      const msg = args.map(a=>typeof a==='object'?JSON.stringify(a):a).join(' ');
-      const el = document.createElement('div');
-      el.style.color = '#f55';
-      el.textContent = `[ERR] ${msg}`;
-      div.appendChild(el);
-      div.scrollTop = div.scrollHeight;
-    };
-  }catch(e){}
-})();
 </script>
 </body>
 </html>
