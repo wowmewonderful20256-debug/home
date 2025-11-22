@@ -248,6 +248,23 @@
       }
     });
 
+    // Funkcja do aktualizacji progress questa
+async function updateQuestProgress(uid, questId, incrementBy = 1) {
+  const uqRef = doc(db, 'user_quests', `${uid}_${questId}`);
+  const snap = await getDoc(uqRef);
+
+  if (!snap.exists()) {
+    await setDoc(uqRef, {
+      uid: uid,
+      questId: questId,
+      doneCount: incrementBy,
+      total: 1,
+      claimed: false
+    });
+  } else {
+    await updateDoc(uqRef, { doneCount: increment(incrementBy) });
+  }
+    }
     // Create action
     createBtn.addEventListener('click', async () => {
       const user = auth.currentUser;
@@ -267,23 +284,7 @@
           ownerUid: user.uid,
           createdAt: new Date().toISOString()
         });
-// Funkcja do aktualizacji progress questa
-async function updateQuestProgress(uid, questId, incrementBy = 1) {
-  const uqRef = doc(db, 'user_quests', `${uid}_${questId}`);
-  const snap = await getDoc(uqRef);
 
-  if (!snap.exists()) {
-    await setDoc(uqRef, {
-      uid: uid,
-      questId: questId,
-      doneCount: incrementBy,
-      total: 1,
-      claimed: false
-    });
-  } else {
-    await updateDoc(uqRef, { doneCount: increment(incrementBy) });
-  }
-    }
         await updateQuestProgress(user.uid, "Create Time", 1);
     
         // redirect to view page (consistent path)
