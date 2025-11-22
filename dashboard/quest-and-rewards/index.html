@@ -196,40 +196,6 @@ if(logoutBtn){
   logoutBtn.addEventListener('click', async () => { try{ await signOut(auth); }catch{} window.location.href='/login/index.html'; });
 }
 
-/* ---------------- Small page debug area + console override (safe) ---------------- */
-function _createDebugPanel(){
-  try{
-    if(document.getElementById('debugLog')) return;
-    const dbg = document.createElement('pre');
-    dbg.id = 'debugLog';
-    dbg.style.position = 'fixed';
-    dbg.style.right = '8px';
-    dbg.style.bottom = '8px';
-    dbg.style.maxWidth = '360px';
-    dbg.style.maxHeight = '220px';
-    dbg.style.overflow = 'auto';
-    dbg.style.background = 'rgba(0,0,0,0.6)';
-    dbg.style.color = '#fff';
-    dbg.style.padding = '8px';
-    dbg.style.borderRadius = '8px';
-    dbg.style.fontSize = '12px';
-    dbg.style.zIndex = '9999';
-    dbg.style.whiteSpace = 'pre-wrap';
-    document.body.appendChild(dbg);
-  }catch(e){}
-}
-function logDebug(...args){
-  try{
-    console.log(...args);
-    _createDebugPanel();
-    const dbg = document.getElementById('debugLog');
-    if(!dbg) return;
-    const text = args.map(a => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ');
-    dbg.textContent += text + '\n';
-    if(dbg.textContent.length > 4000) dbg.textContent = dbg.textContent.slice(-4000);
-    dbg.scrollTop = dbg.scrollHeight;
-  }catch(e){}
-}
 
 // --- Config & small helpers ---
 const QUEST_IDS = [
