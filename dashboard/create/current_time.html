@@ -157,7 +157,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
-    import { getFirestore, doc, setDoc, getDoc, updateDoc, addDoc, collection, increment } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
+    import { doc, setDoc, getDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
 
     // Firebase config (same)
@@ -267,7 +267,23 @@
           ownerUid: user.uid,
           createdAt: new Date().toISOString()
         });
+// Funkcja do aktualizacji progress questa
+async function updateQuestProgress(uid, questId, incrementBy = 1) {
+  const uqRef = doc(db, 'user_quests', `${uid}_${questId}`);
+  const snap = await getDoc(uqRef);
 
+  if (!snap.exists()) {
+    await setDoc(uqRef, {
+      uid: uid,
+      questId: questId,
+      doneCount: incrementBy,
+      total: 1,
+      claimed: false
+    });
+  } else {
+    await updateDoc(uqRef, { doneCount: increment(incrementBy) });
+  }
+    }
         await updateQuestProgress(user.uid, "Create Time", 1);
     
         // redirect to view page (consistent path)
