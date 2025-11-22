@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>TimeSphere | Create Clock</title>
+  <link rel="icon" href="https://timesphere-cloud.github.io/home/data/time_sphere_icon.ico">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
 <style>
@@ -200,7 +201,7 @@ if (menuToggle && sideMenu && menuOverlay) {
 /* ---------- Logout (safe) ---------- */
 const logoutBtn = $('logoutBtn');
 if (logoutBtn) {
-  logoutBtn.addEventListener('click', () => { location.href = '/login/index.html'; });
+  logoutBtn.addEventListener('click', () => { location.href = '/home/login/'; });
 } else {
   console.warn('#logoutBtn not found.');
 }
@@ -369,7 +370,7 @@ if (createBtn) {
         createdAt: new Date().toISOString()
       });
       await updateQuestProgress(user.uid, "Create clock", 1);
-      window.location.href = `/home/dashboard/clock.html?id=${docRef.id}`;
+      window.location.href = `/home/dashboard/clock?id=${docRef.id}`;
     } catch (e) {
       alert('Creation failed: ' + (e.message || e));
     }
@@ -382,7 +383,7 @@ if (createBtn) {
 onAuthStateChanged(auth, user => {
   if (!user) {
     // if user not logged in, redirect to login (keeps behavior consistent)
-    try { location.href = '/login/index.html'; } catch(e){ console.warn('Redirect failed', e); }
+    try { location.href = 'home/login/index'; } catch(e){ console.warn('Redirect failed', e); }
   } else {
     // ensure preview loop started after auth (canvas might already be init)
     if (window.__clockPreview && themeSelect) window.__clockPreview.setTheme(themeSelect.value || 'dark');
