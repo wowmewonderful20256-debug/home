@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>TimeSphere | Updates & Rules</title>
+  <link rel="icon" href="https://timesphere-cloud.github.io/home/data/time_sphere_icon.ico">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
   <style>
@@ -159,12 +160,12 @@
     }
 
     if(logoutBtn){
-      logoutBtn.addEventListener('click', ()=>{ location.href = '/login/index.html'; });
+      logoutBtn.addEventListener('click', ()=>{ location.href = '/home/login/'; });
     }
 
     // simple auth guard
     onAuthStateChanged(auth, user => {
-      if(!user) location.href = '/login/index.html';
+      if(!user) location.href = '/home/login/';
     });
   </script>
 </body>
