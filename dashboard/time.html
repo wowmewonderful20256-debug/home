@@ -4,6 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>TimeSphere | Current Time View</title>
+  <link rel="icon" href="https://timesphere-cloud.github.io/home/data/time_sphere_icon.ico">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
 <style>
@@ -72,7 +73,7 @@
   <a href="/home/dashboard/create/"><span class="material-icons">add_circle</span>Create</a>
   <a href="/home/dashboard/user-storage/"><span class="material-icons">storage</span>Storage</a>
   <a href="/home/dashboard/coins/"><span class="material-icons">paid</span>Coins</a>
-  <a href="/home/dashboard/quests-and-rewards/"><span class="material-icons">emoji_events</span>Quests</a>
+  <a href="/home/dashboard/quest-and-rewards/"><span class="material-icons">emoji_events</span>Quests</a>
   <a href="/home/dashboard/settings/"><span class="material-icons">settings</span>Settings</a>
 </nav>
 <div id="menuOverlay" tabindex="-1"></div>
@@ -124,7 +125,7 @@ $('menuToggle')?.addEventListener('click',()=>{ sideMenu.classList.add('open'); 
 overlay?.addEventListener('click',()=>{ sideMenu.classList.remove('open'); overlay.classList.remove('show'); sideMenu.setAttribute('aria-hidden','true'); });
 
 // logout
-$('logoutBtn')?.addEventListener('click',()=>{ auth.signOut?.(); window.location.href='/login/index.html'; });
+$('logoutBtn')?.addEventListener('click',()=>{ auth.signOut?.(); window.location.href='/home/login/'; });
 
 // get id from URL
 const params = new URLSearchParams(window.location.search);
@@ -168,7 +169,7 @@ async function loadTime(){
 
 // ensure user logged in
 onAuthStateChanged(auth,user=>{
-  if(!user) window.location.href='/login/index.html';
+  if(!user) window.location.href='/home/login/';
   else loadTime();
 });
 </script>
