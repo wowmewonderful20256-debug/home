@@ -3,6 +3,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TimeSphere Dashboard</title>
+  <link rel="icon" href="https://timesphere-cloud.github.io/home/data/time_sphere_icon.ico">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
   <style>
@@ -139,7 +140,7 @@
     <a href="/home/dashboard/create-new-item/"><span class="material-icons">add_circle</span>Create</a>
     <a href="/home/dashboard/user-storage/"><span class="material-icons">storage</span>Storage</a>
     <a href="/home/dashboard/coins/"><span class="material-icons">paid</span>Coins</a>
-    <a href="/home/dashboard/quests-and-rewards/"><span class="material-icons">military_tech</span>Quests</a>
+    <a href="/home/dashboard/quest-and-rewards/"><span class="material-icons">military_tech</span>Quests</a>
     <a href="/home/dashboard/settings/"><span class="material-icons">settings</span>Settings</a>
   </nav>
   <div class="menu-overlay" id="menuOverlay"></div>  <main>
@@ -183,7 +184,7 @@
 
     document.getElementById('logoutBtn').addEventListener('click', async () => {
       await signOut(auth);
-      window.location.href = '/login/index.html';
+      window.location.href = '/home/login/';
     });
 
     function updateClock() {
@@ -196,7 +197,7 @@
 
     onAuthStateChanged(auth, async (user) => {
       if (!user) {
-        window.location.href = '/login/index.html';
+        window.location.href = '/home/login/';
       } else {
         document.getElementById('userInfo').innerHTML = `Welcome, <b>${user.email}</b><br>UID: ${user.uid}`;
 
@@ -219,7 +220,7 @@
             const btn = document.createElement('button');
             btn.className = 'item-btn';
             btn.innerHTML = '<span class="material-icons">help_outline</span>';
-            btn.onclick = () => window.location.href = `/home/dashboard/item.html?id=${item.id}`;
+            btn.onclick = () => window.location.href = `/home/dashboard/item?id=${item.id}`;
             container.appendChild(btn);
           });
 
@@ -227,7 +228,7 @@
             const moreBtn = document.createElement('button');
             moreBtn.className = 'see-more';
             moreBtn.textContent = 'See more';
-            moreBtn.onclick = () => window.location.href = '/home/dashboard/more-items/list.html';
+            moreBtn.onclick = () => window.location.href = '/home/dashboard/more-items/list';
             container.appendChild(document.createElement('br'));
             container.appendChild(moreBtn);
           }
