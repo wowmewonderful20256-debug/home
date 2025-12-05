@@ -4,6 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>TimeSphere | Changelog</title>
+  <link rel="icon" href="https://timesphere-cloud.github.io/home/data/time_sphere_icon.ico">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
 <style>
@@ -101,7 +102,7 @@
     <a href="/home/dashboard/create/"><span class="material-icons">add_circle</span>Create</a>
     <a href="/home/dashboard/user-storage/"><span class="material-icons">storage</span>Storage</a>
     <a href="/home/dashboard/coins/"><span class="material-icons">paid</span>Coins</a>
-    <a href="/home/dashboard/quests-and-rewards/"><span class="material-icons">emoji_events</span>Quests</a>
+    <a href="/home/dashboard/quest-and-rewards/"><span class="material-icons">emoji_events</span>Quests</a>
     <a href="/home/dashboard/settings/"><span class="material-icons">settings</span>Settings</a>
   </nav>
   <div id="menuOverlay"></div>
@@ -251,7 +252,7 @@
       document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape'){ sideMenu.classList.remove('open'); menuOverlay.classList.remove('show'); }});
     }
 
-    if(logoutBtn) logoutBtn.addEventListener('click', ()=>{ location.href = '/login/index.html'; });
+    if(logoutBtn) logoutBtn.addEventListener('click', ()=>{ location.href = '/home/login/'; });
 
     // header clock showing Europe/London time
     function updateHeaderClock(){
