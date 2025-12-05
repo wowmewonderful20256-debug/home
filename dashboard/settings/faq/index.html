@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TimeSphere | FAQ</title>
+  <link rel="icon" href="https://timesphere-cloud.github.io/home/data/time_sphere_icon.ico">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 <style>
@@ -191,10 +192,10 @@
   }
 
   if(logoutBtn){
-    logoutBtn.addEventListener('click', ()=>{ location.href = '/login/index.html'; });
+    logoutBtn.addEventListener('click', ()=>{ location.href = '/home/login/'; });
   }
 
-  onAuthStateChanged(auth, user => { if(!user) location.href = '/login/index.html'; });
+  onAuthStateChanged(auth, user => { if(!user) location.href = '/home/login/'; });
 
   // FAQ toggle
   document.querySelectorAll('.faq-item').forEach(item=>{
