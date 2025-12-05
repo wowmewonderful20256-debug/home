@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TimeSphere | Search Users</title>
+  <link rel="icon" href="https://timesphere-cloud.github.io/home/data/time_sphere_icon.ico">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
   <style>
@@ -137,7 +138,7 @@
     <a href="/home/dashboard/create-new-item/"><span class="material-icons">add_circle</span>Create</a>
     <a href="/home/dashboard/user-storage/"><span class="material-icons">storage</span>Storage</a>
     <a href="/home/dashboard/coins/"><span class="material-icons">paid</span>Coins</a>
-    <a href="/home/dashboard/quests-and-rewards/"><span class="material-icons">emoji_events</span>Quests</a>
+    <a href="/home/dashboard/quest-and-rewards/"><span class="material-icons">emoji_events</span>Quests</a>
     <a href="/home/dashboard/settings/"><span class="material-icons">settings</span>Settings</a>
   </nav>
   <div id="menuOverlay"></div>
@@ -196,7 +197,7 @@
   // Logout
   document.getElementById('logoutBtn').addEventListener('click', async () => {
     await signOut(auth);
-    window.location.href = '/login/index.html';
+    window.location.href = '/home/login/';
   });
 
   // Search redirect
@@ -204,7 +205,7 @@
   const searchInput = document.getElementById('searchInput');
   function performSearch() {
     const query = searchInput.value.trim();
-    if (query) window.location.href = `/home/dashboard/users/search.html?query=${encodeURIComponent(query)}`;
+    if (query) window.location.href = `/home/dashboard/users/search?query=${encodeURIComponent(query)}`;
   }
   searchBtn.addEventListener('click', performSearch);
   searchInput.addEventListener('keypress', e => { if (e.key === 'Enter') performSearch(); });
@@ -218,7 +219,7 @@
   // Load users after login
   onAuthStateChanged(auth, async (user) => {
     if (!user) {
-      window.location.href = '/login/index.html';
+      window.location.href = '/home/login/';
       return;
     }
 
