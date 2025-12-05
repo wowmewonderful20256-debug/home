@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>TimeSphere | Edit Clock</title>
-
+<link rel="icon" href="https://timesphere-cloud.github.io/home/data/time_sphere_icon.ico">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
 
@@ -156,7 +156,7 @@
     <a href="/home/dashboard/create/"><span class="material-icons">add_circle</span>Create</a>
     <a href="/home/dashboard/user-storage/"><span class="material-icons">storage</span>Storage</a>
     <a href="/home/dashboard/coins/"><span class="material-icons">paid</span>Coins</a>
-    <a href="/home/dashboard/quests-and-rewards/"><span class="material-icons">emoji_events</span>Quests</a>
+    <a href="/home/dashboard/quest-and-rewards/"><span class="material-icons">emoji_events</span>Quests</a>
     <a href="/home/dashboard/settings/"><span class="material-icons">settings</span>Settings</a>
   </nav>
   <div id="menuOverlay"></div>
@@ -238,7 +238,7 @@
     menuToggle.addEventListener('click', ()=>{ sideMenu.classList.add('open'); menuOverlay.classList.add('show'); });
     menuOverlay.addEventListener('click', ()=>{ sideMenu.classList.remove('open'); menuOverlay.classList.remove('show'); });
     document.addEventListener('keydown', (e)=>{ if(e.key==='Escape'){ sideMenu.classList.remove('open'); menuOverlay.classList.remove('show'); }});
-    document.getElementById('logoutBtn').addEventListener('click', ()=>{ location.href = '/login/index.html'; });
+    document.getElementById('logoutBtn').addEventListener('click', ()=>{ location.href = '/home/login/'; });
 
     // DOM refs
     const tzSelect = document.getElementById('tzSelect');
@@ -378,7 +378,7 @@
     // auth & load existing clock
     onAuthStateChanged(auth, async (user) => {
       if(!user){
-        location.href = '/login/index.html';
+        location.href = '/home/login/';
         return;
       }
       if(!clockId){
@@ -395,7 +395,7 @@
         if(data.ownerUid !== user.uid){
           // not owner -> redirect to view
           alert('Redirecting... Reason: you are not owner of this clock');
-          location.href = `/home/dashboard/clock.html?id=${clockId}`;
+          location.href = `/home/dashboard/clock?id=${clockId}`;
           return;
         }
         // populate inputs
@@ -433,7 +433,7 @@
         await updateQuestProgress(currentUser.uid, "Edit clock", 1);
     
         // redirect to view
-        location.href = `/home/dashboard/clock.html?id=${encodeURIComponent(clockId)}`;
+        location.href = `/home/dashboard/clock?id=${encodeURIComponent(clockId)}`;
       } catch (e) {
         console.error(e);
         alert('Save failed: ' + (e.message || e));
