@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TimeSphere | Edit Countdown</title>
+  <link rel="icon" href="https://timesphere-cloud.github.io/home/data/time_sphere_icon.ico">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
   <style>
@@ -118,7 +119,7 @@ setInterval(updateClock,1000);
 updateClock();
 
 // Logout
-document.getElementById('logoutBtn').addEventListener('click', ()=>{ location.href='/login/index.html'; });
+document.getElementById('logoutBtn').addEventListener('click', ()=>{ location.href='/home/login/'; });
 
 // Get countdown ID from URL
 const params = new URLSearchParams(window.location.search);
@@ -145,7 +146,7 @@ nameInput.addEventListener('input', ()=>{ namePreview.textContent = nameInput.va
 
 // Load existing countdown
 onAuthStateChanged(auth, async user=>{
-  if(!user){ location.href='/login/index.html'; return; }
+  if(!user){ location.href='/home/login/'; return; }
   if(!countdownId){ alert('Countdown not found'); return; }
 
   const docRef = doc(db,'countdowns',countdownId);
@@ -173,7 +174,7 @@ saveBtn.addEventListener('click', async ()=>{
 
   await updateQuestProgress(currentUser.uid, "Edit Countdown", 1);
   
-  window.location.href = `/home/dashboard/view_countdown.html?name=${encodeURIComponent(countdownId)}`;
+  window.location.href = `/home/dashboard/view_countdown?name=${encodeURIComponent(countdownId)}`;
 });
 </script>
 </body>
